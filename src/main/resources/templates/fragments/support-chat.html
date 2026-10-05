@@ -1,0 +1,29 @@
+<div th:fragment="widget">
+  <link rel="stylesheet" th:href="@{/css/support-chat.css}"/>
+  <section class="support-chat" id="supportChat" aria-label="Chat de soporte">
+    <div class="support-chat-panel" id="supportChatPanel" hidden>
+      <header class="support-chat-header">
+        <div>
+          <strong>Asistente del refugio</strong>
+          <span>Refugio Nueva Vida</span>
+        </div>
+        <button type="button" id="supportChatClose" aria-label="Cerrar chat">×</button>
+      </header>
+      <div class="support-chat-messages" id="supportChatMessages" aria-live="polite">
+        <p class="support-chat-bubble assistant">¡Hola! Puedo ayudarte con preguntas sobre adopciones y el sitio del refugio. ¿Qué te gustaría saber?</p>
+      </div>
+      <p class="support-chat-notice">Respuestas generadas por IA; verifica con el refugio la información específica. No compartas datos personales.</p>
+      <form class="support-chat-form" id="supportChatForm">
+        <input type="hidden" id="supportChatCsrfToken" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <label class="support-chat-sr-only" for="supportChatInput">Escribe tu pregunta</label>
+        <textarea id="supportChatInput" maxlength="1200" rows="2" placeholder="Escribe tu pregunta…" required></textarea>
+        <button type="submit" id="supportChatSend">Enviar</button>
+      </form>
+    </div>
+    <button type="button" class="support-chat-toggle" id="supportChatToggle"
+            aria-expanded="false" aria-controls="supportChatPanel">
+      <span aria-hidden="true">✦</span> ¿Necesitas ayuda?
+    </button>
+  </section>
+  <script th:src="@{/js/support-chat.js}" defer></script>
+</div>

@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: empresa
+      MYSQL_USER: ${DB_USERNAME:-refugio_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-refugio-local-password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-refugio-root-local}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - type: bind
+        source: ./docs/script SQL.sql
+        target: /docker-entrypoint-initdb.d/01-schema.sql
+        read_only: true
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pet-adoption-project:local
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:mysql://db:3306/empresa?useSSL=false&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${DB_USERNAME:-refugio_app}
+      DB_PASSWORD: ${DB_PASSWORD:-refugio-local-password}
+      APP_UPLOAD_DIR: /app/uploads/fotos
+      APP_BASE_URL: http://localhost:8080
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-demo12345}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_SMTP_AUTH: "false"
+      MAIL_SMTP_STARTTLS: "false"
+      MAIL_FROM: no-reply@refugionuevavida.local
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      GEMINI_PROXY_URL: ${GEMINI_PROXY_URL:-https://refugio-gemini-proxy.juliocabrera721.workers.dev}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - uploads-data:/app/uploads/fotos
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/login || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  uploads-data:

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Configuración de horarios — Refugio Nueva Vida</title>
+  <link rel="stylesheet" th:href="@{/css/configuracion-horarios-admin.css(v=2)}"/>
+  <link rel="stylesheet" th:href="@{/css/app-theme.css}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a th:href="@{/inicio}" class="nav-brand">Refugio Nueva Vida</a>
+      <span class="admin-badge">⚙ Panel Admin</span>
+    </div>
+    <div class="nav-right">
+      <a th:href="@{/admin/panel}" class="btn-nav">← Volver al panel</a>
+    </div>
+  </nav>
+
+  <main class="page-wrapper">
+    <a th:href="@{/admin/panel}" class="back-link">← Volver al panel de administración</a>
+    <header class="page-heading">
+      <span class="eyebrow">Agenda del refugio</span>
+      <h1>Configuración de horarios</h1>
+      <p>Define una regla semanal permanente y agrega excepciones solo cuando un día lo necesite.</p>
+    </header>
+
+    <div th:if="${mensajeExito}" class="notice success">✅ <span th:text="${mensajeExito}"></span></div>
+    <div th:if="${errorMsg}" class="notice error">⚠️ <span th:text="${errorMsg}"></span></div>
+
+    <section class="card">
+      <div class="section-heading">
+        <div class="section-icon">🔁</div>
+        <div>
+          <h2>Horario semanal actual</h2>
+          <p>Esta regla se repite cada semana y se mantiene vigente hasta que la edites.</p>
+        </div>
+      </div>
+
+      <div class="current-settings">
+        <div class="current-setting">
+          <span class="current-setting-label">Duración de cada cita</span>
+          <strong th:text="${configuracion.duracionMinutos == 30 ? '30 minutos' : (configuracion.duracionMinutos == 60 ? '1 hora' : (configuracion.duracionMinutos == 120 ? '2 horas' : '3 horas'))}">30 minutos</strong>
+        </div>
+        <div class="current-setting">
+          <span class="current-setting-label">Profesionales simultáneos</span>
+          <strong th:text="${configuracion.profesionalesDisponibles}">1</strong>
+        </div>
+      </div>
+
+      <div class="current-week-list">
+        <div class="current-day-row" th:each="dia : ${configuracion.dias}">
+          <strong class="current-day-name" th:text="${dia.nombre}">Lunes</strong>
+          <div class="current-day-hours" th:if="${dia.habilitado}">
+            <span th:if="${dia.mananaInicio != null}"
+                  th:text="|Mañana ${dia.mananaInicio}–${dia.mananaFin}|"></span>
+            <span th:if="${dia.tardeInicio != null}"
+                  th:text="|Tarde ${dia.tardeInicio}–${dia.tardeFin}|"></span>
+          </div>
+          <span class="current-closed" th:unless="${dia.habilitado}">Cerrado</span>
+        </div>
+      </div>
+
+      <div class="view-actions">
+        <button type="button" class="btn-secondary" id="weeklyEditButton"
+                aria-expanded="false" aria-controls="weeklyEditor">Editar horario semanal</button>
+      </div>
+
+      <div class="editor-panel" id="weeklyEditor" hidden>
+        <h3>Editar horario semanal</h3>
+        <form th:action="@{/admin/horarios/semanal}" th:object="${configuracion}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+          <div class="settings-grid">
+            <label class="field-card">
+              <span>Duración de cada cita</span>
+              <select th:field="*{duracionMinutos}" required>
+                <option value="30">30 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="120">2 horas</option>
+                <option value="180">3 horas</option>
+              </select>
+              <small>Los turnos comienzan con esta misma frecuencia y no se solapan.</small>
+            </label>
+            <label class="field-card">
+              <span>Profesionales disponibles al mismo tiempo</span>
+              <input type="number" min="1" max="20" th:field="*{profesionalesDisponibles}" required/>
+              <small>Determina cuántas citas simultáneas se aceptan en cada turno.</small>
+            </label>
+          </div>
+
+          <div class="week-list">
+            <div class="week-row" th:each="dia, stat : *{dias}">
+              <input type="hidden" th:field="*{dias[__${stat.index}__].dia}"/>
+              <div class="week-day">
+                <label class="day-toggle">
+                  <input type="checkbox" th:field="*{dias[__${stat.index}__].habilitado}"
+                         class="day-enabled" role="switch"
+                         th:attr="aria-label=|Disponibilidad de ${dia.nombre}|"/>
+                  <span class="toggle-ui"></span>
+                </label>
+                <strong th:text="${dia.nombre}">Lunes</strong>
+              </div>
+              <div class="day-hours">
+                <div class="time-group">
+                  <span>Mañana</span>
+                  <input type="time" th:field="*{dias[__${stat.index}__].mananaInicio}"/>
+                  <span class="time-separator">a</span>
+                  <input type="time" th:field="*{dias[__${stat.index}__].mananaFin}"/>
+                </div>
+                <div class="time-group">
+                  <span>Tarde</span>
+                  <input type="time" th:field="*{dias[__${stat.index}__].tardeInicio}"/>
+                  <span class="time-separator">a</span>
+                  <input type="time" th:field="*{dias[__${stat.index}__].tardeFin}"/>
+                </div>
+              </div>
+              <span class="open-label">Disponible</span>
+              <span class="closed-label">Cerrado</span>
+            </div>
+          </div>
+
+          <div class="form-footer">
+            <p>Si cambias un horario que afecta citas ya confirmadas, primero tendrás que reprogramarlas.</p>
+            <div class="editor-actions">
+              <button type="button" class="btn-secondary cancel-edit" data-editor="weeklyEditor">Cancelar</button>
+              <button type="submit" class="btn-primary">Guardar horario semanal</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div class="section-icon exception-icon">📆</div>
+        <div>
+          <h2>Excepciones de fechas</h2>
+          <p>Estos cambios temporales reemplazan el horario semanal solo en la fecha indicada.</p>
+        </div>
+      </div>
+
+      <div class="exceptions-list">
+        <h3>Fechas con un horario diferente</h3>
+        <div th:if="${#lists.isEmpty(excepciones)}" class="empty-state">
+          No hay excepciones futuras. Se aplicará el horario semanal.
+        </div>
+        <div class="exception-item" th:each="item : ${excepciones}">
+          <div>
+            <strong th:text="${#temporals.format(item.fecha, 'EEEE dd/MM/yyyy')}">Fecha</strong>
+            <span th:if="${item.cerrado}" class="closed-pill">Cerrado</span>
+            <span th:if="${not item.cerrado}" class="hours-summary">
+              <span th:if="${item.mananaInicio != null}"
+                    th:text="|${item.mananaInicio}–${item.mananaFin}|"></span>
+              <span th:if="${item.tardeInicio != null}"
+                    th:text="|${item.tardeInicio}–${item.tardeFin}|"></span>
+            </span>
+          </div>
+          <form th:action="@{/admin/horarios/excepcion/{id}/eliminar(id=${item.id})}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn-remove">Quitar excepción</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="view-actions">
+        <button type="button" class="btn-secondary" id="exceptionEditButton"
+                aria-expanded="false" aria-controls="exceptionEditor">Agregar o cambiar una fecha</button>
+      </div>
+
+      <div class="editor-panel" id="exceptionEditor" hidden>
+        <h3>Configurar excepción de fecha</h3>
+        <form th:action="@{/admin/horarios/excepcion}" th:object="${excepcion}" method="post" class="exception-form">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <label class="field-card date-field">
+            <span>Fecha</span>
+            <input type="date" th:field="*{fecha}" required/>
+          </label>
+          <label class="closed-check">
+            <input type="checkbox" th:field="*{cerrado}" id="exceptionClosed"/>
+            <span>Cerrar el refugio este día</span>
+          </label>
+          <div class="exception-hours" id="exceptionHours">
+            <div class="time-group">
+              <span>Mañana</span>
+              <input type="time" th:field="*{mananaInicio}"/>
+              <span class="time-separator">a</span>
+              <input type="time" th:field="*{mananaFin}"/>
+            </div>
+            <div class="time-group">
+              <span>Tarde</span>
+              <input type="time" th:field="*{tardeInicio}"/>
+              <span class="time-separator">a</span>
+              <input type="time" th:field="*{tardeFin}"/>
+            </div>
+          </div>
+          <div class="form-footer exception-footer">
+            <p>Las citas confirmadas deben quedar dentro del horario de la excepción.</p>
+            <div class="editor-actions">
+              <button type="button" class="btn-secondary cancel-edit" data-editor="exceptionEditor">Cancelar</button>
+              <button type="submit" class="btn-primary">Guardar excepción</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer><p>© 2025 <span>Refugio Nueva Vida</span> · Panel de Administración</p></footer>
+  <script>
+    document.querySelectorAll('.week-row').forEach(function(row) {
+      var checkbox = row.querySelector('.day-enabled');
+      function updateDay() {
+        row.classList.toggle('is-closed', !checkbox.checked);
+        checkbox.setAttribute('aria-checked', String(checkbox.checked));
+      }
+      checkbox.addEventListener('change', updateDay);
+      updateDay();
+    });
+
+    function connectEditor(buttonId, editorId) {
+      var button = document.getElementById(buttonId);
+      var editor = document.getElementById(editorId);
+      function setOpen(open) {
+        editor.hidden = !open;
+        button.setAttribute('aria-expanded', String(open));
+      }
+      button.addEventListener('click', function() {
+        setOpen(editor.hidden);
+      });
+      document.querySelectorAll('.cancel-edit[data-editor="' + editorId + '"]').forEach(function(cancel) {
+        cancel.addEventListener('click', function() {
+          setOpen(false);
+        });
+      });
+    }
+    connectEditor('weeklyEditButton', 'weeklyEditor');
+    connectEditor('exceptionEditButton', 'exceptionEditor');
+
+    var closedCheckbox = document.getElementById('exceptionClosed');
+    var hours = document.getElementById('exceptionHours');
+    function updateException() {
+      hours.classList.toggle('is-hidden', closedCheckbox.checked);
+    }
+    closedCheckbox.addEventListener('change', updateException);
+    updateException();
+  </script>
+</body>
+</html>
