@@ -4,7 +4,7 @@ Aplicación web de adopción de perros con Spring Boot, MySQL y notificaciones p
 
 ## IMPORTANTE — Profesor Ronald: cambios implementados durante el Semestre 5
 
-Refugio Nueva Vida es un proyecto que ya existía. Esta sección resume las funciones nuevas, mejoras y correcciones que se implementaron durante el Semestre 5; no significa que todo el proyecto se haya creado este semestre.
+
 
 ### Gestión de horarios y citas
 
