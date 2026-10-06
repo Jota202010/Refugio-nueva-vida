@@ -30,6 +30,15 @@ Aplicación web de adopción de perros con Spring Boot, MySQL y notificaciones p
 - La clave de Gemini se administra como secreto en Cloudflare; no se incluye en Git, Docker ni el navegador.
 - Se configuró un límite de solicitudes en el proxy. Sus contadores son por ubicación de Cloudflare, no un límite global; también aplican las cuotas de Cloudflare y Gemini.
 
+### Autenticación JWT para API
+
+- Se agregó autenticación JWT para endpoints de API, sin reemplazar ni alterar el login web por formulario y sesión.
+- `POST /api/auth/token` valida credenciales existentes y emite un access token Bearer firmado con HS256, válido durante 15 minutos.
+- `GET /api/auth/me` requiere el token y devuelve la identidad y los roles autenticados.
+- El chat de soporte continúa disponible sin JWT y mantiene su protección CSRF de navegador.
+- Si no se configura `JWT_SECRET`, la aplicación usa una clave aleatoria temporal y los tokens dejan de ser válidos al reiniciarla. Para una clave persistente se configura `JWT_SECRET` solo en el entorno local; nunca se guarda en Git.
+- Se documentó cómo probar los endpoints en [docs/jwt-auth.md](docs/jwt-auth.md).
+
 ### Experiencia visual, navegación y accesibilidad
 
 - Se renovó el tema visual con verde bosque, blanco, tonos salvia y colores oscuros en las páginas públicas y administrativas.

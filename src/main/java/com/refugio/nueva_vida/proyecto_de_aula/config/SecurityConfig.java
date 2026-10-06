@@ -1,14 +1,19 @@
 package com.refugio.nueva_vida.proyecto_de_aula.config;
 
 import com.refugio.nueva_vida.proyecto_de_aula.security.CustomUserDetailsService;
+import com.refugio.nueva_vida.proyecto_de_aula.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -32,6 +37,30 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http,
+                                              JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+        http
+            .securityMatcher("/api/**")
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/token"))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, exception) -> {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"error\":\"Se requiere un token Bearer válido.\"}");
+            }))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/token", "/api/support-chat/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
@@ -39,7 +68,6 @@ public class SecurityConfig {
                 .requestMatchers("/", "/inicio", "/nosotros", "/mision",
                                  "/login", "/registro", "/css/**", "/js/**",
                                  "/images/**", "/fotos/**", "/mascota/**",
-                                 "/api/support-chat/**",
                                  "/error", "/error/**").permitAll()
                 // Rutas de admin: solo rol administrador
                 .requestMatchers("/admin/**").hasRole("administrador")
