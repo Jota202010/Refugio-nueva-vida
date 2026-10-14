@@ -6,6 +6,14 @@ Aplicación web de adopción de perros con Spring Boot, MySQL y notificaciones p
 
 
 
+### Integrantes
+
+- Julio Cabrera Schamun
+- Jhon Jairo Carmona Macea
+- Stiven De Jesus Tovar Rodriguez
+
+Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) para ver las funciones disponibles para usuarios y administradores.
+
 ### Gestión de horarios y citas
 
 - Se incorporó un panel administrativo para configurar los horarios disponibles por cada día de la semana.
