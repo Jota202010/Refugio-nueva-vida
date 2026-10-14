@@ -11,6 +11,7 @@ Aplicación web de adopción de perros con Spring Boot, MySQL y notificaciones p
 - Julio Cabrera Schamun
 - Jhon Jairo Carmona Macea
 - Stiven De Jesus Tovar Rodriguez
+- Juan Pablo Burgos Rodriguez
 
 Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) para ver las funciones disponibles para usuarios y administradores.
 
