@@ -57,7 +57,14 @@
           <button type="submit" class="btn-login">Iniciar Sesión</button>
         </form>
 
-        <div class="divider">o</div>
+        <div th:if="${googleLoginEnabled}" class="divider">o continúa con</div>
+        <a th:if="${googleLoginEnabled}"
+           class="btn-google"
+           th:href="@{/oauth2/authorization/google}">
+          <span class="google-mark" aria-hidden="true">G</span>
+          Continuar con Google
+        </a>
+        <div th:unless="${googleLoginEnabled}" class="divider">o</div>
         <div class="register-prompt">
           ¿No tienes cuenta aún? <a th:href="@{/registro}">Regístrate aquí</a>
         </div>

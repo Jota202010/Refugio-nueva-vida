@@ -3,8 +3,10 @@ package com.refugio.nueva_vida.proyecto_de_aula.controller;
 import com.refugio.nueva_vida.proyecto_de_aula.model.Usuario;
 import com.refugio.nueva_vida.proyecto_de_aula.service.CitaService;
 import com.refugio.nueva_vida.proyecto_de_aula.service.UsuarioService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -15,19 +17,29 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final CitaService    citaService;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrations;
 
-    public AuthController(UsuarioService usuarioService, CitaService citaService) {
+    public AuthController(UsuarioService usuarioService,
+                          CitaService citaService,
+                          ObjectProvider<ClientRegistrationRepository> clientRegistrations) {
         this.usuarioService = usuarioService;
         this.citaService    = citaService;
+        this.clientRegistrations = clientRegistrations;
     }
 
     // ── Login GET ─────────────────────────────────────────────────────────────
     @GetMapping("/login")
     public String login(@RequestParam(required = false) String error,
                         @RequestParam(required = false) String logout,
+                        @RequestParam(required = false) String oauth2Error,
                         Model model) {
         if (error  != null) model.addAttribute("errorMsg",  "Usuario o contraseña incorrectos. Verifica tus datos.");
         if (logout != null) model.addAttribute("logoutMsg", "Sesión cerrada correctamente.");
+        if (oauth2Error != null) {
+            model.addAttribute("errorMsg",
+                "No se pudo iniciar sesión con Google. Verifica tu cuenta e inténtalo de nuevo.");
+        }
+        model.addAttribute("googleLoginEnabled", clientRegistrations.getIfAvailable() != null);
         return "usuario/login";
     }
 

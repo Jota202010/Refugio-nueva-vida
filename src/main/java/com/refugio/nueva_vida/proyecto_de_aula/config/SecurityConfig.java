@@ -1,8 +1,10 @@
 package com.refugio.nueva_vida.proyecto_de_aula.config;
 
 import com.refugio.nueva_vida.proyecto_de_aula.security.CustomUserDetailsService;
+import com.refugio.nueva_vida.proyecto_de_aula.security.GoogleOidcUserService;
 import com.refugio.nueva_vida.proyecto_de_aula.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -20,6 +22,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 
 import java.net.URI;
 import java.util.regex.Matcher;
@@ -105,7 +111,10 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            AuthenticationSuccessHandler loginSuccessHandler,
-                                           RequestCache requestCache) throws Exception {
+                                           RequestCache requestCache,
+                                           ObjectProvider<ClientRegistrationRepository> clientRegistrations,
+                                           ObjectProvider<OAuth2UserService<OidcUserRequest, OidcUser>> googleOidcUserService)
+            throws Exception {
         http
             .requestCache(cache -> cache.requestCache(requestCache))
             .authorizeHttpRequests(auth -> auth
@@ -129,14 +138,25 @@ public class SecurityConfig {
                 .successHandler(loginSuccessHandler)
                 .failureUrl("/login?error=true")        // a dónde va si falla
                 .permitAll()
-            )
-            .logout(logout -> logout
+            );
+
+        if (clientRegistrations.getIfAvailable() != null) {
+            http.oauth2Login(oauth -> oauth
+                .loginPage("/login")
+                .userInfoEndpoint(userInfo -> userInfo.oidcUserService(googleOidcUserService.getObject()))
+                .successHandler(loginSuccessHandler)
+                .failureUrl("/login?oauth2Error=true")
+                .permitAll()
+            );
+        }
+
+        http.logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout=true")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()
-            );
+        );
 
         return http.build();
     }

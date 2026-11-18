@@ -48,6 +48,14 @@ Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) p
 - Si no se configura `JWT_SECRET`, la aplicación usa una clave aleatoria temporal y los tokens dejan de ser válidos al reiniciarla. Para una clave persistente se configura `JWT_SECRET` solo en el entorno local; nunca se guarda en Git.
 - Se documentó cómo probar los endpoints en [docs/jwt-auth.md](docs/jwt-auth.md).
 
+### Inicio de sesión con Google
+
+- El login web puede habilitar Google OpenID Connect sin reemplazar el acceso existente con usuario y contraseña.
+- Crea un cliente OAuth para aplicación web en Google Cloud Console y autoriza el redirect URI `http://localhost:8080/login/oauth2/code/google` (en producción, usa la URL HTTPS del sitio).
+- Configura `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en el archivo `.env` local (usa `.env.example` como referencia). Mientras la pantalla de consentimiento esté en modo de prueba, agrega las cuentas que probarán el login como usuarios de prueba.
+- Las cuentas nuevas requieren correo verificado y siempre reciben el rol `usuario`. Si el correo ya existe, se conserva la cuenta y su rol.
+- Sin ambas credenciales configuradas, el botón de Google permanece oculto y el resto de la aplicación funciona normalmente.
+
 ### Experiencia visual, navegación y accesibilidad
 
 - Se renovó el tema visual con verde bosque, blanco, tonos salvia y colores oscuros en las páginas públicas y administrativas.

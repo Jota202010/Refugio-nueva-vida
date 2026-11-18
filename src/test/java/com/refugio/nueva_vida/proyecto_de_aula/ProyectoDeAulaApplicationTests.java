@@ -29,9 +29,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+	"GOOGLE_CLIENT_ID=",
+	"GOOGLE_CLIENT_SECRET="
+})
 @AutoConfigureMockMvc
 class ProyectoDeAulaApplicationTests {
 
@@ -71,8 +75,12 @@ class ProyectoDeAulaApplicationTests {
 			.andExpect(jsonPath("$.username").value("adoptante1"))
 			.andExpect(jsonPath("$.roles[0]").value("ROLE_usuario"));
 
-		mockMvc.perform(get("/login"))
-			.andExpect(status().isOk());
+		MvcResult loginPage = mockMvc.perform(get("/login"))
+			.andExpect(status().isOk())
+			.andReturn();
+		String loginHtml = loginPage.getResponse().getContentAsString();
+		assertTrue(loginHtml.contains("name=\"contrasena\""));
+		assertFalse(loginHtml.contains("/oauth2/authorization/google"));
 	}
 
 	@Test
