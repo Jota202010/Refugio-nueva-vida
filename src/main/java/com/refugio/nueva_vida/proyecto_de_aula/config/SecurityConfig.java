@@ -27,6 +27,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 
@@ -155,8 +156,12 @@ public class SecurityConfig {
                         : "not_available";
                     Throwable cause = exception.getCause();
                     String causeType = cause == null ? "none" : cause.getClass().getSimpleName();
-                    LOGGER.warn("Google OAuth login failed: exceptionType={}, oauthErrorCode={}, causeType={}",
-                        exception.getClass().getSimpleName(), oauthErrorCode, causeType);
+                    String causeOAuthErrorCode = cause instanceof OAuth2AuthorizationException authorizationException
+                        ? authorizationException.getError().getErrorCode()
+                        : "not_available";
+                    LOGGER.warn("Google OAuth login failed: exceptionType={}, oauthErrorCode={}, "
+                            + "causeType={}, causeOAuthErrorCode={}",
+                        exception.getClass().getSimpleName(), oauthErrorCode, causeType, causeOAuthErrorCode);
                     response.sendRedirect(request.getContextPath() + "/login?oauth2Error=true");
                 })
                 .permitAll()
