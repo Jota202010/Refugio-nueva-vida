@@ -6,32 +6,73 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.mail.MailPreparationException;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+
+import java.time.Duration;
+import java.util.List;
 
 @Service
 public class NotificacionCitaService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificacionCitaService.class);
+    private static final String RESEND_API_URL = "https://api.resend.com";
 
     private final JavaMailSender mailSender;
+    private final RestClient restClient;
     private final CitaRepository citaRepository;
     private final String remitente;
     private final String baseUrl;
+    private final String proveedorCorreo;
+    private final String resendApiKey;
 
+    @Autowired
     public NotificacionCitaService(JavaMailSender mailSender,
+                                   RestClient.Builder builder,
                                    CitaRepository citaRepository,
                                    @Value("${app.mail.from:no-reply@refugionuevavida.org}") String remitente,
-                                   @Value("${app.base-url:http://localhost:8080}") String baseUrl) {
+                                   @Value("${app.base-url:http://localhost:8080}") String baseUrl,
+                                   @Value("${app.mail.provider:smtp}") String proveedorCorreo,
+                                   @Value("${app.mail.resend.api-key:}") String resendApiKey) {
+        this(mailSender, builder, citaRepository, remitente, baseUrl, proveedorCorreo, resendApiKey, true);
+    }
+
+    NotificacionCitaService(JavaMailSender mailSender,
+                           RestClient.Builder builder,
+                           CitaRepository citaRepository,
+                           String remitente,
+                           String baseUrl,
+                           String proveedorCorreo,
+                           String resendApiKey,
+                           boolean configureTimeouts) {
+        if (!"smtp".equalsIgnoreCase(proveedorCorreo) && !"resend".equalsIgnoreCase(proveedorCorreo)) {
+            throw new IllegalArgumentException("MAIL_PROVIDER debe ser smtp o resend.");
+        }
+        if (configureTimeouts) {
+            SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+            requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+            requestFactory.setReadTimeout(Duration.ofSeconds(15));
+            builder.requestFactory(requestFactory);
+        }
         this.mailSender = mailSender;
+        this.restClient = builder.baseUrl(RESEND_API_URL).build();
         this.citaRepository = citaRepository;
         this.remitente = remitente;
         this.baseUrl = baseUrl;
+        this.proveedorCorreo = proveedorCorreo.toLowerCase(java.util.Locale.ROOT);
+        this.resendApiKey = resendApiKey;
     }
 
     public void enviarAvisoPreaprobacion(Integer idCita) {
@@ -166,6 +207,37 @@ public class NotificacionCitaService {
     }
 
     private void enviarCorreo(Cita cita, String asunto, String textoPlano, String contenidoHtml) {
+        if ("smtp".equals(proveedorCorreo)) {
+            enviarPorSmtp(cita, asunto, textoPlano, contenidoHtml);
+            return;
+        }
+
+        if (resendApiKey == null || resendApiKey.isBlank()) {
+            throw new MailSendException("Falta configurar la variable RESEND_API_KEY.");
+        }
+
+        try {
+            restClient.post()
+                .uri("/emails")
+                .header("Authorization", "Bearer " + resendApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new ResendEmailRequest(remitente, List.of(cita.getUsuario().getEmail()),
+                    asunto, textoPlano, contenidoHtml))
+                .retrieve()
+                .toBodilessEntity();
+        } catch (RestClientResponseException exception) {
+            int status = exception.getStatusCode().value();
+            logger.warn("Resend rechazó el correo de la cita {} (HTTP {}).", cita.getIdCita(), status);
+            throw new MailSendException("Resend rechazó el correo (HTTP " + status + ").", exception);
+        } catch (RestClientException exception) {
+            logger.warn("No se pudo conectar con Resend para la cita {} ({}).",
+                cita.getIdCita(), exception.getClass().getSimpleName());
+            throw new MailSendException("No se pudo conectar con el proveedor de correo.", exception);
+        }
+        logger.info("Resend aceptó el correo de notificación para la cita {}.", cita.getIdCita());
+    }
+
+    private void enviarPorSmtp(Cita cita, String asunto, String textoPlano, String contenidoHtml) {
         MimeMessage mensaje = mailSender.createMimeMessage();
         try {
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
@@ -173,10 +245,12 @@ public class NotificacionCitaService {
             helper.setTo(cita.getUsuario().getEmail());
             helper.setSubject(asunto);
             helper.setText(textoPlano, contenidoHtml);
-        } catch (MessagingException e) {
-            throw new MailPreparationException("No se pudo preparar el correo de notificación de cita.", e);
+        } catch (MessagingException exception) {
+            throw new MailPreparationException("No se pudo preparar el correo de notificación de cita.", exception);
         }
         mailSender.send(mensaje);
         logger.info("SMTP aceptó el correo de notificación para la cita {}.", cita.getIdCita());
     }
+
+    private record ResendEmailRequest(String from, List<String> to, String subject, String text, String html) {}
 }

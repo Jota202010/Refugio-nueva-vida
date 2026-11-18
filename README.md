@@ -26,10 +26,10 @@ Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) p
 
 ### Notificaciones por correo
 
-- Al preaprobar una solicitud, se envía un correo con información para que el usuario pueda elegir un horario.
+- Al preaprobar una solicitud, se envía un correo con información para que el usuario pueda elegir un horario; las solicitudes pendientes de revisión humana también reciben una confirmación.
 - Se agregó la notificación de rechazo y la opción administrativa para reenviar notificaciones.
 - Un problema con el correo no revierte una preaprobación ya guardada; el administrador puede intentar enviar la notificación nuevamente.
-- En Docker, los mensajes se capturan en Mailpit para probarlos sin enviarlos a direcciones externas.
+- En producción se puede usar Resend por HTTPS; en Docker, SMTP sigue conectado a Mailpit para probar sin enviar mensajes externos.
 
 ### Perfil del usuario
 
@@ -126,4 +126,4 @@ Como alternativa de desarrollo local, puedes usar una clave directa en `GEMINI_A
 
 ## Desarrollo fuera de Docker
 
-La aplicación usa `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` desde el entorno; por defecto intenta conectarse a MySQL local como `root` sin contraseña. Para el correo, configura `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`, `MAIL_FROM` y `APP_BASE_URL`. Para activar Gemini fuera de Docker, configura `GEMINI_PROXY_URL` para usar el proxy o `GEMINI_API_KEY` para desarrollo local directo. No guardes contraseñas ni claves API en el repositorio.
+La aplicación usa `DB_URL`, `DB_USERNAME` y `DB_PASSWORD` desde el entorno; por defecto intenta conectarse a MySQL local como `root` sin contraseña. Para correo en producción con Resend, configura `MAIL_PROVIDER=resend`, `RESEND_API_KEY`, `MAIL_FROM` con un remitente de un dominio verificado en Resend y `APP_BASE_URL`. Para usar SMTP local, configura `MAIL_PROVIDER=smtp` junto a `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH` y `MAIL_SMTP_STARTTLS`. Para activar Gemini fuera de Docker, configura `GEMINI_PROXY_URL` para usar el proxy o `GEMINI_API_KEY` para desarrollo local directo. No guardes contraseñas ni claves API en el repositorio.
