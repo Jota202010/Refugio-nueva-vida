@@ -48,6 +48,13 @@
       ⚙ <span>Estás viendo el perfil de <strong th:text="${perro.nombre}">Nombre</strong> como administrador.</span>
     </div>
 
+    <form th:if="${perro.estadoPublicacion.name() == 'ADOPTADO'}"
+          th:action="@{/admin/mascota/{id}/devolver(id=${perro.idPerro})}"
+          method="post"
+          id="formDevolver">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    </form>
+
     <!-- FORMULARIO EDITAR PERRO -->
     <form th:action="@{/admin/mascota/{id}/editar(id=${perro.idPerro})}"
           th:object="${perro}"
@@ -150,17 +157,38 @@
           <div style="background:linear-gradient(135deg,#1F2937 0%,#111827 100%);border-radius:14px;padding:20px 22px;margin:16px 0;border:2px solid var(--orange);">
             <p style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#fff;margin-bottom:6px;">Estado de publicación</p>
             <p style="font-size:.75rem;color:#9CA3AF;margin-bottom:12px;font-weight:500;">Controla si el animal aparece en el listado público y en qué etapa está.</p>
-            <select th:field="*{estadoPublicacion}"
+            <select th:if="${perro.estadoPublicacion.name() != 'DEVUELTO'}"
+                    th:field="*{estadoPublicacion}"
                     style="width:100%;border:1px solid #4B5563;border-radius:8px;padding:10px 12px;font-size:.9rem;background:#374151;color:#F9FAFB;font-weight:700;cursor:pointer;">
               <option th:each="ep : ${estadosPublicacion}"
                       th:value="${ep}"
                       th:text="${ep.label}"
+                      th:if="${ep.name() != 'DEVUELTO'}"
                       th:disabled="${ep.name() == 'ADOPTADO' and perro.estadoPublicacion.name() != 'ADOPTADO'}">
+              </option>
+            </select>
+            <select th:if="${perro.estadoPublicacion.name() == 'DEVUELTO'}"
+                    name="estadoPublicacion"
+                    style="width:100%;border:1px solid #4B5563;border-radius:8px;padding:10px 12px;font-size:.9rem;background:#374151;color:#F9FAFB;font-weight:700;cursor:pointer;">
+              <option th:each="ep : ${estadosPublicacion}"
+                      th:if="${ep.name() != 'ADOPTADO'}"
+                      th:value="${ep}"
+                      th:text="${ep.label}"
+                      th:selected="${ep.name() == perro.estadoPublicacion.name()}">
               </option>
             </select>
             <p style="font-size:.72rem;color:#FDBA74;margin-top:8px;font-weight:700;">
               Para registrar una adopción, usa el botón de la cita confirmada.
             </p>
+            <div th:if="${perro.estadoPublicacion.name() == 'ADOPTADO'}" class="return-action">
+              <p>Si vuelve al refugio, registra aquí su devolución. El adoptante quedará vinculado en el historial.</p>
+              <button type="submit"
+                      form="formDevolver"
+                      class="btn-return"
+                      onclick="return confirm('¿Confirmas que este perro fue devuelto al refugio?')">
+                ↩ Registrar devolución
+              </button>
+            </div>
           </div>
 
           <!-- Atributos editables -->

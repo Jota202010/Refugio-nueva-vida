@@ -68,7 +68,7 @@
               <label class="radio-option"><input type="radio" th:field="*{propiedad}" th:value="${T(com.refugio.nueva_vida.proyecto_de_aula.model.Cita.Propiedad).alquilada}"/>Alquilada</label>
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="permisoMascotasGroup" hidden>
             <label class="form-label">¿Permiten mascotas? *</label>
             <div class="radio-group">
               <label class="radio-option"><input type="radio" th:field="*{permitenMascotas}" th:value="${T(com.refugio.nueva_vida.proyecto_de_aula.model.Cita.PermitenMascotas).si}"/>✔ Sí</label>
@@ -77,10 +77,10 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">¿Cuántas personas viven contigo?</label>
-            <input class="form-input" type="number" th:field="*{numPersonas}" placeholder="Número de personas" min="1"/>
+            <label class="form-label">¿Cuántas personas viven en tu hogar, incluyéndote?</label>
+            <input class="form-input" type="number" th:field="*{numPersonas}" placeholder="Ej.: 1" min="1" step="1"/>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="acuerdoHogarGroup" hidden>
             <label class="form-label">¿Todos en casa están de acuerdo? *</label>
             <div class="radio-group">
               <label class="radio-option"><input type="radio" th:field="*{todosAcuerdo}" th:value="true"/>✔ Sí</label>
@@ -108,7 +108,7 @@
               <label class="radio-option"><input type="radio" th:field="*{mascotasActual}" th:value="false"/>✘ No</label>
             </div>
           </div>
-          <div class="form-group form-grid col1">
+          <div class="form-group form-grid col1" id="mascotasAnterioresGroup" hidden>
             <label class="form-label">¿Qué pasó con tus mascotas anteriores?</label>
             <textarea class="form-textarea" th:field="*{mascotasAnteriores}" placeholder="Cuéntanos brevemente (fallecieron, donadas, etc.)"></textarea>
           </div>
@@ -120,7 +120,7 @@
         <div class="section-header"><div class="section-num">3</div><span class="section-emoji">⏰</span><span class="section-title">Tiempo y compromiso</span></div>
         <div class="form-grid">
           <div class="form-group">
-            <label class="form-label">¿Horas al día solo el perro?</label>
+            <label class="form-label">En un día habitual, ¿cuánto tiempo estaría el perro solo en casa?</label>
             <select class="form-select" th:field="*{horasSolo}">
               <option value="">Selecciona...</option>
               <option value="Menos de 2 horas">Menos de 2 horas</option>
@@ -198,6 +198,19 @@
         </div>
       </div>
 
+      <div class="form-section">
+        <div class="section-header"><div class="section-num">7</div><span class="section-emoji">🤖</span><span class="section-title">Evaluación automática opcional</span></div>
+        <div class="checkbox-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="aceptaEvaluacionIa" th:field="*{aceptaEvaluacionIa}"/>
+            <label for="aceptaEvaluacionIa">
+              Acepto que mis respuestas estructuradas se analicen con IA para una preaprobación inicial
+              <span>Se enviarán a Google Gemini, mediante Cloudflare, únicamente respuestas seleccionadas del formulario y datos públicos del perro. No se envían mi nombre, contacto, dirección ni las respuestas de texto libre. Si no aceptas, o si faltan datos o hay dudas, el equipo del refugio revisará la solicitud manualmente. La IA no decide la adopción final.</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="submit-bar">
         <p>📋 Envía tu solicitud — si es pre-aprobada podrás elegir el horario de tu visita</p>
         <button type="submit" class="btn-agendar">
@@ -211,5 +224,6 @@
 
   <footer><p>© 2025 <span>Refugio Nueva Vida</span> · Todos los derechos reservados</p></footer>
   <div th:replace="~{fragments/support-chat :: widget}"></div>
+  <script th:src="@{/js/agendar-cita.js}" defer></script>
 </body>
 </html>

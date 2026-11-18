@@ -51,6 +51,29 @@
       <span style="font-size:.78rem;font-weight:600;">Solicitud recibida el <span th:text="${cita.fechaSolicitud}">fecha</span></span>
     </div>
 
+    <div class="card-section" th:if="${cita.evaluacionIaEstado != null}">
+      <div class="section-label">🤖 Evaluación automática inicial</div>
+      <div class="data-grid">
+        <div class="data-item">
+          <div class="lbl">Resultado</div>
+          <div class="val dyn" th:if="${cita.evaluacionIaEstado.name() == 'preaprobada'}">Preaprobada automáticamente</div>
+          <div class="val dyn" th:if="${cita.evaluacionIaEstado.name() == 'revision_humana'}">Revisión humana requerida</div>
+          <div class="val dyn" th:if="${cita.evaluacionIaEstado.name() == 'sin_consentimiento'}">Sin consentimiento; revisión humana</div>
+          <div class="val dyn" th:if="${cita.evaluacionIaEstado.name() == 'error'}">Evaluación no disponible; revisión humana</div>
+        </div>
+        <div class="data-item" th:if="${cita.evaluacionIaFecha != null}">
+          <div class="lbl">Fecha</div>
+          <div class="val dyn" th:text="${cita.evaluacionIaFecha}">Fecha</div>
+        </div>
+      </div>
+      <div class="qa-list" style="margin-top:14px;">
+        <div class="qa-item">
+          <div class="qa-q">Motivo registrado</div>
+          <div class="qa-a dyn" th:text="${cita.evaluacionIaMotivo}">Motivo de evaluación</div>
+        </div>
+      </div>
+    </div>
+
     <div class="detail-card">
       <div class="card-header">
         <div class="card-header-left">

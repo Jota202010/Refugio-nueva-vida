@@ -1,6 +1,6 @@
 # Proxy de Gemini con Cloudflare Workers
 
-El Worker en `cloudflare-chat/` adapta las solicitudes del chat al API de Gemini y usa `gemini-3.5-flash-lite`. El backend añade a cada consulta una lista acotada de perros publicados con los datos visibles en sus perfiles y una descripción breve del flujo de adopción. Nunca envía solicitudes, usuarios, datos médicos privados ni información de cuenta. La clave se guarda como secreto en Cloudflare: no va en Git, en Docker ni en el navegador. La configuración limita el proxy a 12 consultas por minuto por ubicación de Cloudflare; los contadores del Rate Limiting API son por ubicación, no un contador global exacto. La aplicación también limita las solicitudes por sesión.
+El Worker en `cloudflare-chat/` adapta las solicitudes del chat y de la evaluacion automatica al API de Gemini y usa `gemini-3.5-flash-lite`. El chat recibe una lista acotada de perros publicados con datos visibles en sus perfiles y una descripcion breve del flujo de adopcion; no recibe solicitudes, usuarios, datos medicos privados ni informacion de cuenta. La ruta separada de evaluacion solo recibe, con consentimiento opcional, respuestas estructuradas seleccionadas y un extracto del perfil publico del perro; excluye identificadores y los textos libres del formulario. Revisa [los criterios de preaprobacion](criterios-preaprobacion-automatica.md). La clave se guarda como secreto en Cloudflare: no va en Git, en Docker ni en el navegador. La configuracion limita el proxy a 12 consultas por minuto por ubicacion de Cloudflare; los contadores del Rate Limiting API son por ubicacion, no un contador global exacto. La aplicacion tambien limita las solicitudes por sesion.
 
 ## Publicar el Worker una vez
 
@@ -19,6 +19,8 @@ El Worker puede quedar publicado inicialmente sin clave y devolverá un estado `
 El `namespace_id` de `wrangler.jsonc` debe ser único dentro de tu cuenta de Cloudflare; si ya lo usas, cámbialo por otro número entero que no esté en uso.
 
 Guarda la URL HTTPS que Wrangler muestra al terminar. Comprueba `https://TU-WORKER.workers.dev/healthz`; debe responder `{"status":"ok","configured":true}`. El endpoint de salud no revela la clave.
+
+Al actualizar el codigo del Worker para habilitar la preaprobacion automatica, vuelve a ejecutar `npx wrangler@latest deploy` desde `cloudflare-chat/`. El chat y la evaluacion usan la misma clave y cuota, pero rutas e instrucciones separadas.
 
 ## Conectar Docker
 

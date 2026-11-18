@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.io.IOException;
 import java.util.List;
@@ -53,7 +54,9 @@ public class MascotaController {
         boolean esAdmin = userDetails != null && userDetails.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_administrador"));
 
-        if (perro.getEstadoPublicacion() != Perro.EstadoPublicacion.PUBLICADO && !esAdmin) {
+        boolean perfilPublico = perro.getEstadoPublicacion() == Perro.EstadoPublicacion.PUBLICADO
+            || perro.getEstadoPublicacion() == Perro.EstadoPublicacion.ADOPTADO;
+        if (!perfilPublico && !esAdmin) {
             ra.addFlashAttribute("errorMsg",
                 "El animal '" + perro.getNombre() + "' ya no está disponible para adopción.");
             return "redirect:/inicio";
@@ -61,7 +64,8 @@ public class MascotaController {
 
         // Verificar si el usuario ya tiene una cita activa con este animal
         boolean tienesCita = false;
-        if (userDetails != null && !esAdmin) {
+        if (perro.getEstadoPublicacion() == Perro.EstadoPublicacion.PUBLICADO
+                && userDetails != null && !esAdmin) {
             Usuario usuario = usuarioService.buscarPorUsername(userDetails.getUsername()).orElse(null);
             if (usuario != null) {
                 tienesCita = citaService.citasDeUsuario(usuario).stream()
@@ -125,6 +129,7 @@ public class MascotaController {
 
     // ── Editar perro ──────────────────────────────────────────────────────────
     @PostMapping("/admin/mascota/{id}/editar")
+    @Transactional
     public String editarMascota(@PathVariable Integer id,
                                 @ModelAttribute Perro perroActualizado,
                                 @RequestParam(value = "archivos", required = false) List<MultipartFile> archivos,
@@ -143,6 +148,14 @@ public class MascotaController {
         }
 
         Perro.EstadoPublicacion estadoAnterior = existente.getEstadoPublicacion();
+        Perro.EstadoPublicacion estadoNuevo = perroActualizado.getEstadoPublicacion();
+
+        if (estadoNuevo == Perro.EstadoPublicacion.DEVUELTO
+                && estadoAnterior != Perro.EstadoPublicacion.DEVUELTO) {
+            ra.addFlashAttribute("errorMsg",
+                "Usa el botón «Registrar devolución» para registrar esta transición.");
+            return "redirect:/admin/mascota/" + id;
+        }
 
         if (perroActualizado.getEstadoPublicacion() == Perro.EstadoPublicacion.ADOPTADO
                 && estadoAnterior != Perro.EstadoPublicacion.ADOPTADO) {
@@ -193,6 +206,41 @@ public class MascotaController {
         return "redirect:/admin/mascota/" + id;
     }
 
+    @PostMapping("/admin/mascota/{id}/devolver")
+    @Transactional
+    public String registrarDevolucion(@PathVariable Integer id, RedirectAttributes ra) {
+        Perro perro = perroService.buscarPorId(id).orElse(null);
+        if (perro == null) {
+            ra.addFlashAttribute("errorMsg", "El animal con id " + id + " no existe.");
+            return "redirect:/admin/panel";
+        }
+        if (perro.getEstadoPublicacion() != Perro.EstadoPublicacion.ADOPTADO) {
+            ra.addFlashAttribute("errorMsg",
+                "Solo se puede registrar una devolución cuando el perro está Adoptado.");
+            return "redirect:/admin/mascota/" + id;
+        }
+
+        Usuario adoptante = historialService.adoptanteDeUltimaAdopcion(perro).orElse(null);
+        if (adoptante == null) {
+            ra.addFlashAttribute("errorMsg",
+                "No se puede registrar la devolución porque la última adopción no tiene un adoptante asociado.");
+            return "redirect:/admin/mascota/" + id;
+        }
+
+        perro.setEstadoPublicacion(Perro.EstadoPublicacion.DEVUELTO);
+        perroService.guardar(perro);
+        historialService.registrar(
+            perro,
+            Perro.EstadoPublicacion.ADOPTADO,
+            Perro.EstadoPublicacion.DEVUELTO,
+            HistorialEstado.Origen.ADMIN,
+            adoptante
+        );
+        ra.addFlashAttribute("mensajeExito",
+            "Devolución de \"" + perro.getNombre() + "\" registrada correctamente.");
+        return "redirect:/admin/mascota/" + id;
+    }
+
     // ── Eliminar perro ────────────────────────────────────────────────────────
     @PostMapping("/admin/mascota/{id}/eliminar")
     public String eliminarMascota(@PathVariable Integer id, RedirectAttributes ra) {
@@ -221,7 +269,11 @@ public class MascotaController {
         model.addAttribute("estados",            Perro.Estado.values());
         model.addAttribute("nivelesS",           Perro.NivelSalud.values());
         model.addAttribute("sociabilidades",     Perro.Sociabilidad.values());
-        model.addAttribute("estadosPublicacion", Perro.EstadoPublicacion.values());
+        model.addAttribute("estadosPublicacion",
+            java.util.Arrays.stream(Perro.EstadoPublicacion.values())
+                .filter(estado -> estado != Perro.EstadoPublicacion.ADOPTADO
+                    && estado != Perro.EstadoPublicacion.DEVUELTO)
+                .toList());
         return "privilegiado/agregar-mascota-adminview";
     }
 
@@ -251,6 +303,12 @@ public class MascotaController {
         }
         if (perro.getSociabilidad() == null) {
             ra.addFlashAttribute("errorMsg", "Debes seleccionar la sociabilidad del animal.");
+            return "redirect:/admin/agregar-mascota";
+        }
+        if (perro.getEstadoPublicacion() == Perro.EstadoPublicacion.ADOPTADO
+                || perro.getEstadoPublicacion() == Perro.EstadoPublicacion.DEVUELTO) {
+            ra.addFlashAttribute("errorMsg",
+                "La adopción y la devolución deben registrarse desde sus acciones correspondientes.");
             return "redirect:/admin/agregar-mascota";
         }
 

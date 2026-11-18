@@ -5,6 +5,7 @@ import worker from "../src/index.mjs";
 
 const model = "gemini-3.5-flash-lite";
 const endpoint = `https://proxy.example.test/v1beta/models/${model}:generateContent`;
+const evaluationEndpoint = `https://proxy.example.test/v1beta/models/${model}:evaluateAdoption`;
 
 function makeEnv(options = {}) {
   return {
@@ -18,6 +19,35 @@ function makeEnv(options = {}) {
 
 function chatRequest(body = { contents: [{ role: "user", parts: [{ text: "Hola" }] }] }) {
   return new Request(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function evaluationRequest(body = {
+  application: {
+    tipoVivienda: "casa",
+    propiedad: "propia",
+    permitenMascotas: "no_aplica",
+    todosAcuerdo: true,
+    mascotasActuales: false,
+    horasSolo: "2-4 horas",
+    puedePasear: true,
+    cubreVeterinaria: true,
+    cubreEmergencias: true,
+    aceptaNoAbandono: true,
+    aceptaSeguimiento: true,
+    aceptaEvaluacion: true,
+  },
+  dog: {
+    edad: "2 años",
+    sexo: "Macho",
+    sociabilidad: "ALTA",
+    descripcion: "Perro tranquilo y sociable.",
+  },
+}) {
+  return new Request(evaluationEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -112,6 +142,77 @@ test("malformed chat history is rejected", async () => {
       makeEnv(),
     );
     assert.equal(response.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("adoption evaluation uses a strict schema and forwards only allowlisted fields", async () => {
+  const originalFetch = globalThis.fetch;
+  let upstreamRequest;
+  globalThis.fetch = async (url, options) => {
+    upstreamRequest = { url, options };
+    return Response.json({
+      candidates: [{
+        content: {
+          parts: [{ text: JSON.stringify({
+            decision: "PRE_APPROVE",
+            summary: "No se observan incompatibilidades en la información disponible.",
+          }) }],
+        },
+      }],
+    });
+  };
+  try {
+    const body = await (await evaluationRequest()).json();
+    body.applicantName = "No debe reenviarse";
+    const response = await worker.fetch(evaluationRequest(body), makeEnv());
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      decision: "PRE_APPROVE",
+      summary: "No se observan incompatibilidades en la información disponible.",
+    });
+    assert.equal(upstreamRequest.options.headers["x-goog-api-key"], "test-key");
+    const forwarded = JSON.parse(upstreamRequest.options.body);
+    const data = JSON.parse(forwarded.contents[0].parts[0].text);
+    assert.equal(data.applicantName, undefined);
+    assert.equal(data.application.todosAcuerdo, true);
+    assert.equal(data.dog.descripcion, "Perro tranquilo y sociable.");
+    assert.equal(forwarded.generationConfig.responseMimeType, "application/json");
+    assert.deepEqual(
+      forwarded.generationConfig.responseSchema.properties.decision.enum,
+      ["PRE_APPROVE", "HUMAN_REVIEW"],
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("adoption evaluation routes invalid or uncertain input to a safe client error", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("Gemini must not be called for invalid evaluation input.");
+  };
+  try {
+    const body = await evaluationRequest().json();
+    body.application.horasSolo = "todo el día";
+    const response = await worker.fetch(evaluationRequest(body), makeEnv());
+    assert.equal(response.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("adoption evaluation never turns an invalid model decision into approval", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({
+    candidates: [{
+      content: { parts: [{ text: JSON.stringify({ decision: "APPROVED", summary: "Aprobada" }) }] },
+    }],
+  });
+  try {
+    const response = await worker.fetch(evaluationRequest(), makeEnv());
+    assert.equal(response.status, 502);
   } finally {
     globalThis.fetch = originalFetch;
   }

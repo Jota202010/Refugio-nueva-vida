@@ -108,12 +108,32 @@ public class Cita {
     @Column(name = "cond_evaluacion", nullable = false)
     private Boolean condEvaluacion = false;
 
+    @Column(name = "acepta_evaluacion_ia", nullable = false)
+    private Boolean aceptaEvaluacionIa = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "evaluacion_ia_estado", length = 30)
+    private EstadoEvaluacionIa evaluacionIaEstado;
+
+    @Column(name = "evaluacion_ia_motivo", length = 1000)
+    private String evaluacionIaMotivo;
+
+    @Column(name = "evaluacion_ia_fecha")
+    private LocalDateTime evaluacionIaFecha;
+
     // ── Enums ────────────────────────────────────────────────────────────────
     public enum EstadoCita {
         en_espera,      // usuario envió solicitud
         pre_aprobada,   // admin revisó y pre-aprobó
         confirmada,     // usuario eligió horario → cita fija
         rechazada       // admin rechazó
+    }
+
+    public enum EstadoEvaluacionIa {
+        sin_consentimiento,
+        revision_humana,
+        preaprobada,
+        error
     }
 
     public enum TipoVivienda { casa, apartamento }
@@ -181,4 +201,12 @@ public class Cita {
     public void setCondSeguimiento(Boolean condSeguimiento) { this.condSeguimiento = condSeguimiento; }
     public Boolean getCondEvaluacion() { return condEvaluacion; }
     public void setCondEvaluacion(Boolean condEvaluacion) { this.condEvaluacion = condEvaluacion; }
+    public Boolean getAceptaEvaluacionIa() { return aceptaEvaluacionIa; }
+    public void setAceptaEvaluacionIa(Boolean aceptaEvaluacionIa) { this.aceptaEvaluacionIa = aceptaEvaluacionIa; }
+    public EstadoEvaluacionIa getEvaluacionIaEstado() { return evaluacionIaEstado; }
+    public void setEvaluacionIaEstado(EstadoEvaluacionIa evaluacionIaEstado) { this.evaluacionIaEstado = evaluacionIaEstado; }
+    public String getEvaluacionIaMotivo() { return evaluacionIaMotivo; }
+    public void setEvaluacionIaMotivo(String evaluacionIaMotivo) { this.evaluacionIaMotivo = evaluacionIaMotivo; }
+    public LocalDateTime getEvaluacionIaFecha() { return evaluacionIaFecha; }
+    public void setEvaluacionIaFecha(LocalDateTime evaluacionIaFecha) { this.evaluacionIaFecha = evaluacionIaFecha; }
 }

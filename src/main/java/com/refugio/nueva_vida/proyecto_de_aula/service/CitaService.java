@@ -1,6 +1,7 @@
 package com.refugio.nueva_vida.proyecto_de_aula.service;
 
 import com.refugio.nueva_vida.proyecto_de_aula.model.Cita;
+import com.refugio.nueva_vida.proyecto_de_aula.model.Cita.EstadoEvaluacionIa;
 import com.refugio.nueva_vida.proyecto_de_aula.model.HistorialEstado;
 import com.refugio.nueva_vida.proyecto_de_aula.model.HorarioDisponible;
 import com.refugio.nueva_vida.proyecto_de_aula.model.Perro;
@@ -36,6 +37,8 @@ public class CitaService {
     }
 
     public Cita guardar(Cita cita) {
+        normalizarRespuestasCondicionales(cita);
+
         // Validar que el perro existe y está disponible
         if (cita.getPerro() == null || cita.getPerro().getIdPerro() == null)
             throw new IllegalStateException("No se encontró el animal seleccionado.");
@@ -54,6 +57,23 @@ public class CitaService {
                 ". Revisa tu perfil para ver el estado.");
 
         return citaRepository.save(cita);
+    }
+
+    private void normalizarRespuestasCondicionales(Cita cita) {
+        if (cita.getPropiedad() != Cita.Propiedad.alquilada) {
+            cita.setPermitenMascotas(Cita.PermitenMascotas.no_aplica);
+        }
+
+        Integer personas = cita.getNumPersonas();
+        if (personas == null || personas < 1) {
+            cita.setTodosAcuerdo(null);
+        } else if (personas == 1) {
+            cita.setTodosAcuerdo(true);
+        }
+
+        if (!Boolean.TRUE.equals(cita.getPerrosAntes())) {
+            cita.setMascotasAnteriores(null);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -79,6 +99,30 @@ public class CitaService {
         cita.setEstado(Cita.EstadoCita.pre_aprobada);
         cita.setAdmin(admin);
         cita.setFechaDecision(LocalDateTime.now());
+        return citaRepository.save(cita);
+    }
+
+    public Cita registrarEvaluacionAutomatica(Integer idCita,
+                                              EstadoEvaluacionIa estadoEvaluacion,
+                                              String motivo) {
+        if (estadoEvaluacion == null || motivo == null || motivo.isBlank() || motivo.length() > 1000) {
+            throw new IllegalArgumentException("El resultado de evaluacion automatica no es valido.");
+        }
+        Cita cita = citaRepository.findByIdForUpdate(idCita)
+            .orElseThrow(() -> new IllegalStateException("La cita con id " + idCita + " no existe."));
+        if (cita.getEstado() != Cita.EstadoCita.en_espera) {
+            throw new IllegalStateException(
+                "La solicitud ya fue procesada y no puede recibir una evaluacion automatica.");
+        }
+
+        cita.setEvaluacionIaEstado(estadoEvaluacion);
+        cita.setEvaluacionIaMotivo(motivo);
+        cita.setEvaluacionIaFecha(LocalDateTime.now());
+        if (estadoEvaluacion == EstadoEvaluacionIa.preaprobada) {
+            cita.setEstado(Cita.EstadoCita.pre_aprobada);
+            cita.setAdmin(null);
+            cita.setFechaDecision(LocalDateTime.now());
+        }
         return citaRepository.save(cita);
     }
 

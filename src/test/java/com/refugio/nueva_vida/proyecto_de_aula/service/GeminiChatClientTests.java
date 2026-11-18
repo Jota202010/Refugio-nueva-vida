@@ -1,6 +1,7 @@
 package com.refugio.nueva_vida.proyecto_de_aula.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.refugio.nueva_vida.proyecto_de_aula.web.EvaluacionAdopcionSolicitud;
 import com.refugio.nueva_vida.proyecto_de_aula.web.SupportChatRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -48,5 +49,92 @@ class GeminiChatClientTests {
     void rechazaProxyQueNoUsaHttps() {
         assertThrows(IllegalArgumentException.class, () -> new GeminiChatClient(
             RestClient.builder(), new ObjectMapper(), "", "gemini-3.5-flash-lite", "http://proxy.example.test"));
+    }
+
+    @Test
+    void llamaEndpointSeparadoDeEvaluacionSinEnviarIdentificadoresNiClaveAlProxy() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                "https://proxy.example.test/v1beta/models/gemini-3.5-flash-lite:evaluateAdoption"))
+            .andExpect(method(org.springframework.http.HttpMethod.POST))
+            .andExpect(headerDoesNotExist("x-goog-api-key"))
+            .andExpect(jsonPath("$.application.todosAcuerdo").value(true))
+            .andExpect(jsonPath("$.dog.descripcion").value("Perro tranquilo y sociable."))
+            .andExpect(jsonPath("$.nombre").doesNotExist())
+            .andRespond(withSuccess("""
+                {"decision":"PRE_APPROVE","summary":"No se observan incompatibilidades claras."}
+                """, org.springframework.http.MediaType.APPLICATION_JSON));
+
+        GeminiChatClient client = new GeminiChatClient(
+            builder, new ObjectMapper(), "", "gemini-3.5-flash-lite",
+            "https://proxy.example.test", false);
+
+        var result = client.evaluarSolicitudAdopcion(new EvaluacionAdopcionSolicitud(
+            new EvaluacionAdopcionSolicitud.Aplicacion(
+                "casa", "propia", "no_aplica", true, false, "2-4 horas",
+                true, true, true, true, true, true),
+            new EvaluacionAdopcionSolicitud.PerroPublico(
+                "2 años", "Macho", "ALTA", "Perro tranquilo y sociable.")
+        ));
+
+        assertEquals("PRE_APPROVE", result.decision());
+        assertEquals("No se observan incompatibilidades claras.", result.summary());
+        server.verify();
+    }
+
+    @Test
+    void rechazaRespuestaDeEvaluacionConDecisionDesconocida() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                "https://proxy.example.test/v1beta/models/gemini-3.5-flash-lite:evaluateAdoption"))
+            .andRespond(withSuccess("""
+                {"decision":"APPROVED","summary":"Aprobada"}
+                """, org.springframework.http.MediaType.APPLICATION_JSON));
+        GeminiChatClient client = new GeminiChatClient(
+            builder, new ObjectMapper(), "", "gemini-3.5-flash-lite",
+            "https://proxy.example.test", false);
+
+        assertThrows(GeminiChatClient.ChatProviderException.class,
+            () -> client.evaluarSolicitudAdopcion(new EvaluacionAdopcionSolicitud(
+                new EvaluacionAdopcionSolicitud.Aplicacion(
+                    "casa", "propia", "no_aplica", true, false, "2-4 horas",
+                    true, true, true, true, true, true),
+                new EvaluacionAdopcionSolicitud.PerroPublico(
+                    "2 años", "Macho", "ALTA", "Perro tranquilo.")
+            )));
+        server.verify();
+    }
+
+    @Test
+    void evaluacionDirectaUsaLaApiKeySoloEnElBackendYSolicitaJsonEstructurado() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"))
+            .andExpect(method(org.springframework.http.HttpMethod.POST))
+            .andExpect(header("x-goog-api-key", "private-test-key"))
+            .andExpect(jsonPath("$.generationConfig.responseMimeType").value("application/json"))
+            .andExpect(jsonPath("$.generationConfig.responseSchema.properties.decision.enum[0]")
+                .value("PRE_APPROVE"))
+            .andExpect(jsonPath("$.systemInstruction.parts[0].text")
+                .value(org.hamcrest.Matchers.containsString("evaluador inicial")))
+            .andRespond(withSuccess("""
+                {"candidates":[{"content":{"parts":[{"text":"{\\"decision\\":\\"HUMAN_REVIEW\\",\\"summary\\":\\"Requiere revisión humana.\\"}"}]}}]}
+                """, org.springframework.http.MediaType.APPLICATION_JSON));
+        GeminiChatClient client = new GeminiChatClient(
+            builder, new ObjectMapper(), "private-test-key", "gemini-3.5-flash-lite", "", false);
+
+        var result = client.evaluarSolicitudAdopcion(new EvaluacionAdopcionSolicitud(
+            new EvaluacionAdopcionSolicitud.Aplicacion(
+                "casa", "propia", "no_aplica", true, false, "2-4 horas",
+                true, true, true, true, true, true),
+            new EvaluacionAdopcionSolicitud.PerroPublico(
+                "2 años", "Macho", "ALTA", "Perro tranquilo y sociable.")
+        ));
+
+        assertEquals("HUMAN_REVIEW", result.decision());
+        server.verify();
     }
 }

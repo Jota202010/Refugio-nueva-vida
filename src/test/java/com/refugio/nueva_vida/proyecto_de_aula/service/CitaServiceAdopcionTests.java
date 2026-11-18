@@ -1,6 +1,7 @@
 package com.refugio.nueva_vida.proyecto_de_aula.service;
 
 import com.refugio.nueva_vida.proyecto_de_aula.model.Cita;
+import com.refugio.nueva_vida.proyecto_de_aula.model.Cita.EstadoEvaluacionIa;
 import com.refugio.nueva_vida.proyecto_de_aula.model.HistorialEstado;
 import com.refugio.nueva_vida.proyecto_de_aula.model.Perro;
 import com.refugio.nueva_vida.proyecto_de_aula.model.Usuario;
@@ -13,9 +14,12 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -104,5 +108,49 @@ class CitaServiceAdopcionTests {
 
         verify(historialRepository, never()).save(any());
         verify(perroRepository, never()).save(any());
+    }
+
+    @Test
+    void registraPreaprobacionAutomaticaSinAtribuirlaAUnAdministrador() {
+        Cita cita = new Cita();
+        cita.setIdCita(34);
+        cita.setEstado(Cita.EstadoCita.en_espera);
+        when(citaRepository.findByIdForUpdate(34)).thenReturn(Optional.of(cita));
+        when(citaRepository.save(cita)).thenReturn(cita);
+
+        Cita result = citaService.registrarEvaluacionAutomatica(
+            34, EstadoEvaluacionIa.preaprobada, "Sin incompatibilidades evidentes.");
+
+        assertEquals(Cita.EstadoCita.pre_aprobada, result.getEstado());
+        assertEquals(EstadoEvaluacionIa.preaprobada, result.getEvaluacionIaEstado());
+        assertEquals("Sin incompatibilidades evidentes.", result.getEvaluacionIaMotivo());
+        assertNull(result.getAdmin());
+        assertNotNull(result.getEvaluacionIaFecha());
+    }
+
+    @Test
+    void guardarNormalizaLosCamposQueDependenDeRespuestasCondicionales() {
+        Usuario usuario = new Usuario();
+        Perro perro = new Perro();
+        perro.setIdPerro(12);
+        perro.setEstadoPublicacion(Perro.EstadoPublicacion.PUBLICADO);
+        Cita cita = new Cita();
+        cita.setUsuario(usuario);
+        cita.setPerro(perro);
+        cita.setPropiedad(Cita.Propiedad.propia);
+        cita.setPermitenMascotas(Cita.PermitenMascotas.no);
+        cita.setNumPersonas(1);
+        cita.setPerrosAntes(false);
+        cita.setMascotasAnteriores("Respuesta que ya no aplica");
+
+        when(perroRepository.findById(12)).thenReturn(Optional.of(perro));
+        when(citaRepository.findByUsuario(usuario)).thenReturn(List.of());
+        when(citaRepository.save(cita)).thenReturn(cita);
+
+        Cita guardada = citaService.guardar(cita);
+
+        assertEquals(Cita.PermitenMascotas.no_aplica, guardada.getPermitenMascotas());
+        assertEquals(Boolean.TRUE, guardada.getTodosAcuerdo());
+        assertNull(guardada.getMascotasAnteriores());
     }
 }

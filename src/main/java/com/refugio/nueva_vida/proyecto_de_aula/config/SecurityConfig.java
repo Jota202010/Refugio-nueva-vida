@@ -13,12 +13,23 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
+
+import java.net.URI;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final Pattern ADOPTION_FORM_PATH = Pattern.compile("^/agendar-cita/(\\d+)/?$");
 
     private final CustomUserDetailsService userDetailsService;
 
@@ -34,6 +45,37 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public RequestCache requestCache() {
+        return new HttpSessionRequestCache();
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler loginSuccessHandler(RequestCache requestCache) {
+        SavedRequestAwareAuthenticationSuccessHandler defaultHandler =
+            new SavedRequestAwareAuthenticationSuccessHandler();
+        defaultHandler.setRequestCache(requestCache);
+
+        return (request, response, authentication) -> {
+            SavedRequest savedRequest = requestCache.getRequest(request, response);
+            if (savedRequest != null) {
+                String requestedPath = URI.create(savedRequest.getRedirectUrl()).getPath();
+                String contextPath = request.getContextPath();
+                if (!contextPath.isEmpty() && requestedPath.startsWith(contextPath)) {
+                    requestedPath = requestedPath.substring(contextPath.length());
+                }
+
+                Matcher adoptionPath = ADOPTION_FORM_PATH.matcher(requestedPath);
+                if (adoptionPath.matches()) {
+                    requestCache.removeRequest(request, response);
+                    response.sendRedirect(contextPath + "/mascota/" + adoptionPath.group(1));
+                    return;
+                }
+            }
+            defaultHandler.onAuthenticationSuccess(request, response, authentication);
+        };
     }
 
     @Bean
@@ -61,8 +103,11 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           AuthenticationSuccessHandler loginSuccessHandler,
+                                           RequestCache requestCache) throws Exception {
         http
+            .requestCache(cache -> cache.requestCache(requestCache))
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas: cualquiera puede acceder
                 .requestMatchers("/", "/inicio", "/nosotros", "/mision",
@@ -81,7 +126,7 @@ public class SecurityConfig {
                 .loginProcessingUrl("/login")           // Spring Security intercepta este POST
                 .usernameParameter("usuario")           // nombre del campo en el form
                 .passwordParameter("contrasena")        // nombre del campo password en el form
-                .defaultSuccessUrl("/inicio", true)     // a dónde va si el login es exitoso
+                .successHandler(loginSuccessHandler)
                 .failureUrl("/login?error=true")        // a dónde va si falla
                 .permitAll()
             )

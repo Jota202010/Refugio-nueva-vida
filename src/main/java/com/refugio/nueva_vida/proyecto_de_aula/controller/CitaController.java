@@ -10,6 +10,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.mail.MailException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
@@ -17,17 +20,25 @@ import java.time.format.DateTimeParseException;
 @Controller
 public class CitaController {
 
+    private static final Logger logger = LoggerFactory.getLogger(CitaController.class);
+
     private final CitaService    citaService;
     private final PerroService   perroService;
     private final UsuarioService usuarioService;
     private final HorarioService horarioService;
+    private final EvaluacionAutomaticaAdopcionService evaluacionAutomaticaService;
+    private final NotificacionCitaService notificacionCitaService;
 
     public CitaController(CitaService citaService, PerroService perroService,
-                          UsuarioService usuarioService, HorarioService horarioService) {
+                          UsuarioService usuarioService, HorarioService horarioService,
+                          EvaluacionAutomaticaAdopcionService evaluacionAutomaticaService,
+                          NotificacionCitaService notificacionCitaService) {
         this.citaService    = citaService;
         this.perroService   = perroService;
         this.usuarioService = usuarioService;
         this.horarioService = horarioService;
+        this.evaluacionAutomaticaService = evaluacionAutomaticaService;
+        this.notificacionCitaService = notificacionCitaService;
     }
 
     // ── Formulario solicitud adopción (GET) ───────────────────────────────────
@@ -96,11 +107,37 @@ public class CitaController {
         cita.setEstado(Cita.EstadoCita.en_espera);
         cita.setFechaCita(null);
         cita.setHoraCita(null);
+        cita.setFechaDecision(null);
+        cita.setAdmin(null);
+        cita.setEvaluacionIaEstado(null);
+        cita.setEvaluacionIaMotivo(null);
+        cita.setEvaluacionIaFecha(null);
+        cita.setAceptaEvaluacionIa(Boolean.TRUE.equals(cita.getAceptaEvaluacionIa()));
 
         try {
-            citaService.guardar(cita);
-            ra.addFlashAttribute("mensajeExito",
-                "¡Solicitud enviada! Te notificaremos cuando sea pre-aprobada para que elijas tu horario.");
+            Cita guardada = citaService.guardar(cita);
+            EvaluacionAutomaticaAdopcionService.Resultado evaluacion =
+                evaluacionAutomaticaService.evaluar(guardada);
+            Cita procesada = citaService.registrarEvaluacionAutomatica(
+                guardada.getIdCita(), evaluacion.estado(), evaluacion.motivo());
+
+            if (procesada.getEstado() == Cita.EstadoCita.pre_aprobada) {
+                try {
+                    notificacionCitaService.enviarAvisoPreaprobacion(procesada.getIdCita());
+                    ra.addFlashAttribute("mensajeExito",
+                        "Tu solicitud fue pre-aprobada automaticamente. Revisa tu correo para elegir un horario. "
+                            + "La adopcion aun no esta confirmada.");
+                } catch (MailException exception) {
+                    logger.warn("No se pudo enviar el correo de preaprobacion automatica de la cita {}.",
+                        procesada.getIdCita(), exception);
+                    ra.addFlashAttribute("mensajeExito",
+                        "Tu solicitud fue pre-aprobada automaticamente, pero no se pudo enviar el correo. "
+                            + "El equipo del refugio podra ayudarte con el siguiente paso.");
+                }
+            } else {
+                ra.addFlashAttribute("mensajeExito",
+                    "Tu solicitud fue recibida y quedo pendiente de revision por el equipo del refugio.");
+            }
         } catch (IllegalStateException e) {
             ra.addFlashAttribute("errorMsg", e.getMessage());
         }

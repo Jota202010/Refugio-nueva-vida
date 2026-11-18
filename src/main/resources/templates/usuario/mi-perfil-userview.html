@@ -80,6 +80,10 @@
           <span th:if="${cita.estado.name() == 'en_espera'}"
                 style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:800;"
                 th:text="${cita.estado}">Estado</span>
+          <div th:if="${cita.estado.name() == 'en_espera' and cita.evaluacionIaEstado != null}"
+               style="width:100%;font-size:.78rem;color:#6B7280;">
+            La solicitud está pendiente de revisión por el equipo del refugio.
+          </div>
           <span th:if="${cita.estado.name() == 'pre_aprobada'}"
                 style="background:#D1FAE5;color:#065F46;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:800;"
                 th:text="${cita.estado}">Estado</span>

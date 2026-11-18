@@ -30,14 +30,26 @@
 
   <div class="breadcrumb">
     <a th:href="@{/inicio}">Inicio</a><span>›</span>
-    <a th:href="@{/inicio}">Perros disponibles</a><span>›</span>
+    <a th:href="@{/inicio}">Perros del refugio</a><span>›</span>
     <span style="color:var(--text);" th:text="${perro.nombre}">Nombre</span>
   </div>
 
   <div class="page-wrapper">
     <a th:href="@{/inicio}" class="back-link">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>Volver al listado
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span th:if="${perro.estadoPublicacion.name() == 'ADOPTADO'}">Volver al inicio</span>
+      <span th:unless="${perro.estadoPublicacion.name() == 'ADOPTADO'}">Volver al listado</span>
     </a>
+
+    <div th:if="${perro.estadoPublicacion.name() == 'ADOPTADO'}"
+         class="adopted-banner"
+         role="status">
+      <span class="adopted-banner-icon" aria-hidden="true">🏡</span>
+      <div>
+        <strong>¡<span th:text="${perro.nombre}">Nombre</span> ya encontró un hogar!</strong>
+        <p>Su historia continúa junto a una familia. Gracias por celebrar esta adopción 💚</p>
+      </div>
+    </div>
 
     <!-- Aviso: usuario ya tiene cita activa con este animal -->
     <div th:if="${avisoCita}"
@@ -58,7 +70,8 @@
       ❌ <span th:text="${errorMsg}"></span>
     </div>
 
-    <div class="detail-card">
+    <div class="detail-card"
+         th:classappend="${perro.estadoPublicacion.name() == 'ADOPTADO'} ? ' adopted-profile' : ''">
       <div class="detail-top">
         <div class="gallery">
           <!-- Imagen principal — ocupa todo el espacio de la galería -->
@@ -93,6 +106,8 @@
           </div>
 
           <div class="estado-badge" th:text="${perro.estado}">Estado</div>
+          <div th:if="${perro.estadoPublicacion.name() == 'ADOPTADO'}"
+               class="adopted-photo-badge">💚 Adoptado</div>
         </div>
 
         <div class="info-panel">
@@ -157,9 +172,9 @@
         <p class="desc-text" th:text="${perro.descripcion}">Descripción del perro.</p>
       </div>
 
-      <div class="action-bar">
+      <div class="action-bar" th:unless="${perro.estadoPublicacion.name() == 'ADOPTADO'}">
         <!-- No autenticado: redirige al login -->
-        <a th:href="@{/login}"
+        <a th:href="@{/agendar-cita/{id}(id=${perro.idPerro})}"
            sec:authorize="!isAuthenticated()"
            class="btn-adoptar">
           <span class="btn-icon">🔐</span> Inicia sesión para agendar

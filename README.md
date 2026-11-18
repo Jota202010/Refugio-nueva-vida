@@ -35,7 +35,7 @@ Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) p
 
 - Se integró el chat de ayuda con el backend y un proxy desplegado en Cloudflare Workers.
 - El asistente puede responder preguntas utilizando información pública de los perros publicados.
-- No se envían al modelo datos de cuentas, solicitudes de adopción ni registros médicos privados, y las conversaciones no se guardan en la base de datos.
+- El chat no envía datos de cuentas, solicitudes de adopción ni registros médicos privados, y las conversaciones no se guardan en la base de datos. La preaprobación automática es un flujo separado y solo envía respuestas estructuradas seleccionadas cuando el solicitante lo acepta.
 - La clave de Gemini se administra como secreto en Cloudflare; no se incluye en Git, Docker ni el navegador.
 - Se configuró un límite de solicitudes en el proxy. Sus contadores son por ubicación de Cloudflare, no un límite global; también aplican las cuotas de Cloudflare y Gemini.
 
@@ -62,6 +62,14 @@ Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) p
 - Se preparó Docker Compose para iniciar la aplicación y MySQL con `docker compose up`, sin instalar Java, Maven o MySQL en el equipo del profesor.
 - Se agregaron datos de demostración: una cuenta administrativa, tres cuentas de usuario y seis perros con fotos ilustrativas incluidas en el proyecto. Las fotos cargadas desde la aplicación se guardan en un volumen local y no se publican en Git.
 - Se verificaron las pruebas automatizadas del backend y del Worker, la configuración de Docker y las rutas públicas principales.
+
+### Preaprobación inicial automática con Gemini
+
+- Con consentimiento opcional, Gemini puede preaprobar automáticamente una solicitud clara para que el usuario elija un horario de visita.
+- Las respuestas incompletas, negativas, incompatibles o dudosas quedan en espera para revisión humana; la IA nunca rechaza ni confirma una adopción.
+- La evaluación comparte con Gemini solo respuestas estructuradas seleccionadas y datos públicos del perro; excluye los datos de contacto y los textos libres del formulario.
+- El resultado, el motivo breve y la fecha se guardan para consulta administrativa. Si Gemini no está disponible, la solicitud permanece pendiente.
+- Consulta la [política y criterios de preaprobación automática](docs/criterios-preaprobacion-automatica.md) antes de usar esta función.
 
 Para iniciar la demostración y consultar las credenciales de prueba, continúa con las instrucciones de Docker y [los datos de demostración](docs/demo-data.md).
 

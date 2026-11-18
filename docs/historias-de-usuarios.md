@@ -1,12 +1,13 @@
 # Historias de usuarios — Refugio Nueva Vida
 
-Este documento describe las funciones disponibles en la aplicación según el rol. Las historias reflejan el comportamiento implementado en el proyecto; no implican que el chat pueda realizar acciones en nombre de una persona ni que la solicitud de adopción se apruebe automáticamente.
+Este documento describe las funciones disponibles en la aplicación según el rol. Las historias reflejan el comportamiento implementado en el proyecto; el chat no realiza acciones en nombre de una persona y la preaprobación automatizada no confirma una adopción.
 
 ## Visitante
 
 - Como visitante, quiero ver los perros publicados y disponibles para adopción, para conocer cuáles puedo considerar.
 - Como visitante, quiero buscar y filtrar los perros del catálogo, para encontrar perfiles que coincidan con mis intereses.
 - Como visitante, quiero abrir el perfil de un perro y consultar sus fotos e información pública, para conocerlo antes de registrarme.
+- Como visitante, quiero volver al perfil del perro que elegí después de iniciar sesión, para continuar allí la solicitud de adopción.
 - Como visitante, quiero conocer la información institucional del refugio, su misión y propósito, para saber más sobre la organización.
 - Como visitante, quiero crear una cuenta con mis datos de contacto y contraseña, para iniciar el proceso de adopción.
 - Como visitante, quiero iniciar sesión con mi cuenta y cerrar la sesión de forma segura, para acceder a las funciones personales.
@@ -15,9 +16,12 @@ Este documento describe las funciones disponibles en la aplicación según el ro
 
 - Como usuario, quiero consultar mis datos de perfil y las solicitudes asociadas a mi cuenta, para revisar mi información y actividad.
 - Como usuario, quiero enviar una solicitud de adopción para un perro publicado, incluyendo la información solicitada sobre mi vivienda, para que el refugio evalúe mi caso.
+- Como usuario, quiero ver solo las preguntas que aplican según mis respuestas sobre vivienda, hogar y experiencia con perros, para completar un formulario más claro.
 - Como usuario, quiero evitar enviar solicitudes activas duplicadas para el mismo perro, para no repetir el trámite por error.
 - Como usuario, quiero revisar desde mi perfil mis solicitudes y citas junto con su estado, para conocer el avance de cada proceso.
 - Como usuario, quiero recibir una notificación por correo cuando el refugio preapruebe o rechace mi solicitud, para enterarme de la decisión.
+- Como usuario, quiero aceptar opcionalmente el análisis automatizado de respuestas estructuradas de mi formulario, para que una solicitud clara pueda ser preaprobada y pueda elegir un horario.
+- Como usuario, quiero que una solicitud dudosa o que no autoricé analizar automáticamente permanezca pendiente de revisión humana, para que no sea rechazada por la IA.
 - Como usuario con una solicitud preaprobada, quiero consultar los horarios disponibles y seleccionar uno, para reservar una visita al refugio.
 - Como usuario, quiero que el sistema valide la disponibilidad del horario al confirmar la visita, para evitar reservar un turno ocupado o no habilitado.
 - Como usuario, quiero conversar con el asistente de soporte sobre el sitio, las adopciones y los perros publicados, para resolver dudas generales.
@@ -35,6 +39,7 @@ Este documento describe las funciones disponibles en la aplicación según el ro
 - Como administrador, quiero eliminar un perro cuando corresponda, y recibir un aviso si existen citas asociadas que impiden hacerlo, para evitar borrar registros relacionados por accidente.
 - Como administrador, quiero consultar la información de un usuario y sus solicitudes, para revisar su participación en los procesos de adopción.
 - Como administrador, quiero consultar el detalle de cada solicitud y su estado, para evaluar el caso antes de tomar una decisión.
+- Como administrador, quiero consultar el resultado, motivo y fecha de la evaluación automatizada, para auditar una preaprobación o atender las solicitudes pendientes.
 - Como administrador, quiero preaprobar una solicitud, para habilitar que el usuario seleccione un horario de visita y recibir la información correspondiente por correo.
 - Como administrador, quiero rechazar una solicitud y notificar al usuario, para comunicarle la decisión del refugio.
 - Como administrador, quiero reenviar el correo de preaprobación o rechazo si el envío falla, para que el usuario reciba la notificación sin perder el estado ya guardado de la solicitud.

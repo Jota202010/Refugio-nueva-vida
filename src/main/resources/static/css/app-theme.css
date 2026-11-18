@@ -326,3 +326,77 @@ footer span {
     transition-duration: .01ms !important;
   }
 }
+
+nav {
+  height: auto !important;
+  min-height: 64px;
+  gap: 12px;
+  padding: 10px clamp(16px, 4vw, 48px) !important;
+}
+
+nav .nav-left,
+nav .nav-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+nav .nav-brand {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem !important;
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+nav .nav-brand::before {
+  content: '🐾';
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+nav .nav-links {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+nav .nav-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  line-height: 1.2;
+}
+
+nav a[class*="btn-"],
+nav button[class*="btn-"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  margin-left: 0;
+  padding: 8px 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: .82rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  nav {
+    justify-content: center;
+  }
+
+  nav .nav-left,
+  nav .nav-right {
+    justify-content: center;
+  }
+}

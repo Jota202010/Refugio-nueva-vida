@@ -75,6 +75,10 @@ CREATE TABLE cita (
   cond_no_abandono BOOLEAN NOT NULL DEFAULT FALSE,
   cond_seguimiento BOOLEAN NOT NULL DEFAULT FALSE,
   cond_evaluacion BOOLEAN NOT NULL DEFAULT FALSE,
+  acepta_evaluacion_ia BOOLEAN NOT NULL DEFAULT FALSE,
+  evaluacion_ia_estado VARCHAR(30) NULL,
+  evaluacion_ia_motivo VARCHAR(1000) NULL,
+  evaluacion_ia_fecha DATETIME NULL,
   CONSTRAINT pk_cita PRIMARY KEY (id_cita),
   CONSTRAINT fk_cita_usuario FOREIGN KEY (id_usuario)
     REFERENCES usuario(id_usuario) ON DELETE CASCADE,
