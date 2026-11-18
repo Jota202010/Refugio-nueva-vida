@@ -50,9 +50,10 @@
 
     /* Radio/select group */
     .radio-group{display:flex;gap:10px;flex-wrap:wrap;}
-    .radio-option{display:flex;align-items:center;gap:8px;background:var(--bg);border:2px solid var(--detail);border-radius:10px;padding:10px 16px;cursor:pointer;transition:all .2s;font-size:.88rem;font-weight:700;color:var(--text-muted);}
-    .radio-option input{display:none;}
+    .radio-option{position:relative;display:flex;align-items:center;gap:8px;background:var(--bg);border:2px solid var(--detail);border-radius:10px;padding:10px 16px;cursor:pointer;transition:all .2s;font-size:.88rem;font-weight:700;color:var(--text-muted);}
+    .radio-option input{position:absolute;width:1px;height:1px;opacity:0;margin:0;}
     .radio-option:has(input:checked),.radio-option.checked{background:var(--orange-light);border-color:var(--orange);color:var(--orange);}
+    .radio-option:focus-within{outline:3px solid rgba(249,115,22,.45);outline-offset:2px;}
 
     /* Checkbox group */
     .checkbox-group{display:flex;flex-direction:column;gap:12px;}
