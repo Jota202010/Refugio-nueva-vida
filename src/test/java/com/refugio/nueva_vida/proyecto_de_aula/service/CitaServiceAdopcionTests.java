@@ -111,6 +111,19 @@ class CitaServiceAdopcionTests {
     }
 
     @Test
+    void citasConfirmadasEnFechaConsultaSoloLasCitasProgramadasDeEseDia() {
+        LocalDate fecha = LocalDate.of(2026, 11, 18);
+        List<Cita> citas = List.of(new Cita());
+        when(citaRepository.findByFechaCitaAndEstadoOrderByHoraCitaAsc(
+            fecha, Cita.EstadoCita.confirmada)).thenReturn(citas);
+
+        assertEquals(citas, citaService.citasConfirmadasEnFecha(fecha));
+
+        verify(citaRepository).findByFechaCitaAndEstadoOrderByHoraCitaAsc(
+            fecha, Cita.EstadoCita.confirmada);
+    }
+
+    @Test
     void registraPreaprobacionAutomaticaSinAtribuirlaAUnAdministrador() {
         Cita cita = new Cita();
         cita.setIdCita(34);

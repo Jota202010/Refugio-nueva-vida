@@ -17,6 +17,7 @@
     <div class="nav-right">
       <a th:href="@{/admin/correo}" class="btn-perfil-nav">✉ Configuración de correo</a>
       <a th:href="@{/admin/horarios}" class="btn-perfil-nav">🕒 Configuración de horarios</a>
+      <a th:href="@{/admin/agenda}" class="btn-perfil-nav">🗓 Agenda de citas</a>
       <a th:href="@{/admin/metricas}" class="btn-perfil-nav">📊 Métricas</a>
       <a th:href="@{/admin/perfil}" class="btn-perfil-nav">👤 Mi Perfil</a>
       <form th:action="@{/logout}" method="post" style="display:inline;"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

@@ -9,6 +9,9 @@ import com.refugio.nueva_vida.proyecto_de_aula.web.HorarioExcepcionForm;
 import com.refugio.nueva_vida.proyecto_de_aula.security.GmailOAuth2ConnectionHandler;
 import com.refugio.nueva_vida.proyecto_de_aula.service.GmailCredentialService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,14 +22,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailException;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Controller
 public class AdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
+    private static final ZoneId ZONA_REFUGIO = ZoneId.of("America/Bogota");
 
     private final PerroService perroService;
     private final UsuarioService usuarioService;
@@ -63,6 +68,18 @@ public class AdminController {
         model.addAttribute("citas",           citaService.listarTodas());
         model.addAttribute("citasPendientes", citaService.contarPendientes());
         return "privilegiado/panel-general-adminview";
+    }
+
+    @GetMapping("/admin/agenda")
+    public String agendaCitas(@RequestParam(required = false)
+                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+                              Model model) {
+        LocalDate hoy = LocalDate.now(ZONA_REFUGIO);
+        LocalDate fechaSeleccionada = fecha == null ? hoy : fecha;
+        model.addAttribute("fecha", fechaSeleccionada);
+        model.addAttribute("hoy", hoy);
+        model.addAttribute("citas", citaService.citasConfirmadasEnFecha(fechaSeleccionada));
+        return "privilegiado/agenda-citas-admin";
     }
 
     @GetMapping("/admin/horarios")

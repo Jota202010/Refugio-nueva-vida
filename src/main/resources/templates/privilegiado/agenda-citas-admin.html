@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agenda de citas — Refugio Nueva Vida</title>
+  <link rel="stylesheet" th:href="@{/css/agenda-citas-admin.css}"/>
+  <link rel="stylesheet" th:href="@{/css/app-theme.css}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a th:href="@{/inicio}" class="nav-brand">Refugio Nueva Vida</a>
+      <span class="admin-badge">⚙ Panel Admin</span>
+    </div>
+    <div class="nav-right">
+      <a th:href="@{/admin/panel}" class="nav-link">← Panel</a>
+      <a th:href="@{/admin/horarios}" class="nav-link">🕒 Horarios</a>
+      <a th:href="@{/admin/metricas}" class="nav-link">📊 Métricas</a>
+      <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="logout-button">Cerrar sesión</button>
+      </form>
+    </div>
+  </nav>
+
+  <main class="page-wrapper">
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">Organización del refugio</p>
+        <h1>Agenda de citas</h1>
+        <p class="page-subtitle">Consulta las visitas confirmadas y ayuda al equipo a organizar la jornada.</p>
+      </div>
+      <span class="today-badge" th:if="${fecha.equals(hoy)}">Agenda de hoy</span>
+    </header>
+
+    <section class="agenda-card" aria-labelledby="selected-date">
+      <div class="date-toolbar">
+        <a class="date-arrow" th:href="@{/admin/agenda(fecha=${fecha.minusDays(1)})}" aria-label="Día anterior">‹</a>
+        <form class="date-picker" th:action="@{/admin/agenda}" method="get">
+          <label for="fecha">Selecciona un día</label>
+          <div class="date-picker-controls">
+            <input id="fecha" name="fecha" type="date" th:value="${fecha}" required/>
+            <button type="submit" class="primary-button">Ver agenda</button>
+          </div>
+        </form>
+        <a class="date-arrow" th:href="@{/admin/agenda(fecha=${fecha.plusDays(1)})}" aria-label="Día siguiente">›</a>
+      </div>
+
+      <div class="agenda-summary">
+        <div>
+          <h2 id="selected-date" th:text="${#temporals.format(fecha, 'EEEE dd MMMM yyyy')}">Fecha seleccionada</h2>
+          <p>Las citas aparecen ordenadas por hora.</p>
+        </div>
+        <span class="appointment-count"
+              th:text="${#lists.size(citas) == 1 ? '1 cita confirmada' : #lists.size(citas) + ' citas confirmadas'}">0 citas confirmadas</span>
+      </div>
+
+      <div class="empty-state" th:if="${#lists.isEmpty(citas)}">
+        <span aria-hidden="true">🗓️</span>
+        <h3>No hay citas confirmadas para este día</h3>
+        <p>Prueba con otra fecha para consultar la agenda del refugio.</p>
+      </div>
+
+      <div class="table-scroll" th:if="${not #lists.isEmpty(citas)}">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Mascota</th>
+              <th>Adoptante</th>
+              <th>Contacto</th>
+              <th>Lugar</th>
+              <th>Solicitud</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="cita : ${citas}">
+              <td class="appointment-time" th:text="${#temporals.format(cita.horaCita, 'HH:mm')}">09:00</td>
+              <td class="pet-name">🐾 <span th:text="${cita.perro.nombre}">Mascota</span></td>
+              <td th:text="${cita.usuario.nombre}">Adoptante</td>
+              <td>
+                <a class="contact-link" th:href="@{'mailto:' + ${cita.usuario.email}}"
+                   th:text="${cita.usuario.email}">correo@ejemplo.com</a>
+                <span class="phone" th:if="${cita.usuario.telefono}" th:text="${cita.usuario.telefono}">Teléfono</span>
+              </td>
+              <td th:text="${cita.sede} ?: 'Por confirmar'">Lugar</td>
+              <td><a class="detail-link" th:href="@{/admin/cita/{id}(id=${cita.idCita})}">Ver detalle</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2025 <span>Refugio Nueva Vida</span> · Agenda de citas</footer>
+</body>
+</html>

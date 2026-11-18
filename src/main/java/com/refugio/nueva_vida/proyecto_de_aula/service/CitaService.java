@@ -80,6 +80,12 @@ public class CitaService {
     public List<Cita> listarTodas() { return citaRepository.findAll(); }
 
     @Transactional(readOnly = true)
+    public List<Cita> citasConfirmadasEnFecha(LocalDate fecha) {
+        return citaRepository.findByFechaCitaAndEstadoOrderByHoraCitaAsc(
+            fecha, Cita.EstadoCita.confirmada);
+    }
+
+    @Transactional(readOnly = true)
     public List<Cita> citasDeUsuario(Usuario usuario) { return citaRepository.findByUsuario(usuario); }
 
     @Transactional(readOnly = true)

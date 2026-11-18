@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +24,10 @@ public interface CitaRepository extends JpaRepository<Cita, Integer> {
 
     @EntityGraph(attributePaths = {"usuario", "perro"})
     Optional<Cita> findWithUsuarioAndPerroByIdCita(Integer idCita);
+
+    @EntityGraph(attributePaths = {"usuario", "perro"})
+    List<Cita> findByFechaCitaAndEstadoOrderByHoraCitaAsc(
+        LocalDate fechaCita, Cita.EstadoCita estado);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Cita c where c.idCita = :id")

@@ -135,6 +135,33 @@ class ProyectoDeAulaApplicationTests {
 	}
 
 	@Test
+	@Transactional
+	void adminCanConsultAgendaForTodayAndAnotherDate() throws Exception {
+		String username = "agenda-test-" + UUID.randomUUID();
+		Usuario admin = new Usuario();
+		admin.setUsuario(username);
+		admin.setNombre("Admin de agenda");
+		admin.setEmail(username + "@example.test");
+		admin.setContrasena(passwordEncoder.encode("agenda-test-password"));
+		admin.setRol(Usuario.Rol.administrador);
+		usuarioRepository.saveAndFlush(admin);
+
+		MockHttpSession session = loginAs(username, "agenda-test-password");
+
+		mockMvc.perform(get("/admin/agenda").session(session))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Agenda de hoy")))
+			.andExpect(content().string(containsString("No hay citas confirmadas para este día")));
+
+		mockMvc.perform(get("/admin/agenda")
+				.session(session)
+				.param("fecha", "2026-11-18"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("value=\"2026-11-18\"")))
+			.andExpect(content().string(containsString("No hay citas confirmadas para este día")));
+	}
+
+	@Test
 	void apiTokenEndpointDoesNotRequireCsrfAndRejectsUnknownCredentials() throws Exception {
 		mockMvc.perform(post("/api/auth/token")
 				.contentType("application/json")
