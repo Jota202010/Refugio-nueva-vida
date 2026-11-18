@@ -47,36 +47,48 @@
 
     <div class="section-card">
       <div class="section-header"><span class="section-title">Mis datos personales</span></div>
-      <form class="profile-form" th:action="@{/perfil}" method="post">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-        <div class="data-grid">
-          <div class="data-item"><div class="lbl">Usuario</div><div class="val" th:text="${usuario.usuario}">usuario</div></div>
-          <label class="data-item profile-field">
-            <span class="lbl">Nombre completo</span>
-            <input type="text" name="nombre" th:value="${formNombre}" minlength="2" maxlength="100"
-                   autocomplete="name" required/>
-          </label>
-          <label class="data-item profile-field">
-            <span class="lbl">Email</span>
-            <input type="email" name="email" th:value="${formEmail}" maxlength="150"
-                   autocomplete="email" required/>
-          </label>
-          <label class="data-item profile-field">
-            <span class="lbl">Teléfono</span>
-            <input type="tel" name="telefono" th:value="${formTelefono}" maxlength="20"
-                   autocomplete="tel"/>
-          </label>
-          <label class="data-item profile-field">
-            <span class="lbl">Dirección</span>
-            <input type="text" name="direccion" th:value="${formDireccion}" maxlength="255"
-                   autocomplete="street-address"/>
-          </label>
-          <div class="data-item"><div class="lbl">Rol</div><div class="val" th:text="${usuario.rol}">rol</div></div>
+      <div class="data-grid">
+        <div class="data-item"><div class="lbl">Usuario</div><div class="val" th:text="${usuario.usuario}">usuario</div></div>
+        <div class="data-item"><div class="lbl">Nombre completo</div><div class="val" th:text="${usuario.nombre}">nombre</div></div>
+        <div class="data-item"><div class="lbl">Email</div><div class="val" th:text="${usuario.email}">email</div></div>
+        <div class="data-item"><div class="lbl">Teléfono</div><div class="val" th:text="${usuario.telefono ?: 'No registrado'}">telefono</div></div>
+        <div class="data-item"><div class="lbl">Dirección</div><div class="val" th:text="${usuario.direccion ?: 'No registrada'}">direccion</div></div>
+        <div class="data-item"><div class="lbl">Rol</div><div class="val" th:text="${usuario.rol}">rol</div></div>
+      </div>
+      <details class="profile-editor" th:open="${errorMsg != null}">
+        <summary>Editar mis datos</summary>
+        <div class="profile-editor-panel">
+          <p>Actualiza tu información de contacto. Tu usuario y rol no se pueden modificar aquí.</p>
+          <form class="profile-form" th:action="@{/perfil}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <div class="data-grid profile-form-grid">
+              <label class="data-item profile-field">
+                <span class="lbl">Nombre completo</span>
+                <input type="text" name="nombre" th:value="${formNombre}" minlength="2" maxlength="100"
+                       autocomplete="name" required/>
+              </label>
+              <label class="data-item profile-field">
+                <span class="lbl">Email</span>
+                <input type="email" name="email" th:value="${formEmail}" maxlength="150"
+                       autocomplete="email" required/>
+              </label>
+              <label class="data-item profile-field">
+                <span class="lbl">Teléfono</span>
+                <input type="tel" name="telefono" th:value="${formTelefono}" maxlength="20"
+                       autocomplete="tel"/>
+              </label>
+              <label class="data-item profile-field">
+                <span class="lbl">Dirección</span>
+                <input type="text" name="direccion" th:value="${formDireccion}" maxlength="255"
+                       autocomplete="street-address"/>
+              </label>
+            </div>
+            <div class="profile-form-actions">
+              <button type="submit" class="profile-save-button">Guardar cambios</button>
+            </div>
+          </form>
         </div>
-        <div class="profile-form-actions">
-          <button type="submit" class="profile-save-button">Guardar cambios</button>
-        </div>
-      </form>
+      </details>
     </div>
 
     <div class="section-card">

@@ -161,8 +161,10 @@ class ProyectoDeAulaApplicationTests {
 		MvcResult profile = mockMvc.perform(get("/perfil").session(session))
 			.andExpect(status().isOk())
 			.andReturn();
-		String csrfToken = extractCsrf(profile.getResponse().getContentAsString());
-		assertTrue(profile.getResponse().getContentAsString().contains("profile-form"));
+		String profileHtml = profile.getResponse().getContentAsString();
+		String csrfToken = extractCsrf(profileHtml);
+		assertTrue(profileHtml.contains("class=\"profile-editor\""));
+		assertFalse(profileHtml.contains("class=\"profile-editor\" open"));
 
 		mockMvc.perform(post("/perfil")
 				.session(session)
@@ -208,7 +210,7 @@ class ProyectoDeAulaApplicationTests {
 			.andReturn();
 		String csrfToken = extractCsrf(profile.getResponse().getContentAsString());
 
-		mockMvc.perform(post("/perfil")
+		MvcResult invalidUpdate = mockMvc.perform(post("/perfil")
 				.session(session)
 				.param("_csrf", csrfToken)
 				.param("nombre", "Nombre modificado")
@@ -216,7 +218,10 @@ class ProyectoDeAulaApplicationTests {
 				.param("telefono", "")
 				.param("direccion", ""))
 			.andExpect(status().isOk())
-			.andExpect(content().string(containsString("El correo electrónico ya está registrado.")));
+			.andExpect(content().string(containsString("El correo electrónico ya está registrado.")))
+			.andReturn();
+		assertTrue(invalidUpdate.getResponse().getContentAsString()
+			.contains("class=\"profile-editor\" open"));
 
 		Usuario unchanged = usuarioRepository.findByUsuario(username).orElseThrow();
 		assertEquals("Nombre original", unchanged.getNombre());

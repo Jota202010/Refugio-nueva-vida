@@ -45,7 +45,23 @@
     .data-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:22px 28px;}
     .data-item{background:var(--bg);border:1px solid var(--detail);border-radius:10px;padding:14px 16px;}
     .data-item .lbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:5px;}
-    .data-item .val{font-size:.9rem;font-weight:800;color:var(--blue-dyn);}
+    .data-item .val{font-size:.9rem;font-weight:800;color:var(--blue-dyn);overflow-wrap:anywhere;}
+    .profile-editor{margin:0 28px 22px;border-top:1px solid var(--detail);padding-top:18px;}
+    .profile-editor summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;cursor:pointer;background:var(--orange-light);border:1px solid var(--orange-mid);border-radius:9px;padding:11px 15px;color:var(--orange-dark);font-size:.86rem;font-weight:800;transition:background .2s;}
+    .profile-editor summary::-webkit-details-marker{display:none;}
+    .profile-editor summary::after{content:"+";font-size:1.2rem;line-height:1;}
+    .profile-editor[open] summary::after{content:"-";}
+    .profile-editor summary:hover{background:#FFEDD5;}
+    .profile-editor summary:focus-visible{outline:2px solid var(--orange);outline-offset:2px;}
+    .profile-editor-panel{margin-top:14px;border:1px solid #E5E7EB;border-radius:12px;padding:18px;background:#fff;}
+    .profile-editor-panel>p{color:var(--text-muted);font-size:.84rem;margin-bottom:4px;}
+    .profile-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:16px 0;}
+    .profile-field{display:flex;flex-direction:column;gap:7px;}
+    .profile-field input{width:100%;min-width:0;border:1px solid var(--detail);border-radius:7px;padding:9px 10px;background:#fff;color:var(--text);font:600 .88rem 'Nunito',sans-serif;}
+    .profile-field input:focus{outline:2px solid rgba(249,115,22,.25);border-color:var(--orange);}
+    .profile-form-actions{display:flex;justify-content:flex-end;}
+    .profile-save-button{border:0;border-radius:8px;padding:10px 18px;background:var(--orange);color:#fff;font:800 .88rem 'Nunito',sans-serif;cursor:pointer;transition:background .2s;}
+    .profile-save-button:hover{background:var(--orange-dark);}
 
     /* Citas list */
     .citas-body{padding:4px 0;}
@@ -70,10 +86,5 @@
     .profile-message{border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.9rem;font-weight:700;}
     .profile-message.success{background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;}
     .profile-message.error{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;}
-    .profile-field{display:flex;flex-direction:column;gap:7px;}
-    .profile-field input{width:100%;min-width:0;border:1px solid var(--detail);border-radius:7px;padding:9px 10px;background:#fff;color:var(--text);font:600 .88rem 'Nunito',sans-serif;}
-    .profile-field input:focus{outline:2px solid rgba(249,115,22,.25);border-color:var(--orange);}
-    .profile-form-actions{display:flex;justify-content:flex-end;padding:0 28px 22px;}
-    .profile-save-button{border:0;border-radius:8px;padding:10px 18px;background:var(--orange);color:#fff;font:800 .88rem 'Nunito',sans-serif;cursor:pointer;transition:background .2s;}
-    .profile-save-button:hover{background:var(--orange-dark);}
     @media(max-width:768px){nav{padding:12px 20px;}.page-wrapper{padding:24px 16px 60px;}.data-grid{grid-template-columns:1fr 1fr;}.profile-hero{padding:24px 20px;flex-direction:column;text-align:center;}.section-header,.data-grid{padding-left:18px;padding-right:18px;}.cita-row{padding:12px 18px;}}
+    @media(max-width:480px){.profile-editor{margin-left:18px;margin-right:18px;}.profile-editor-panel{padding:14px;}.profile-form-grid{grid-template-columns:1fr;}}
