@@ -65,6 +65,48 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
+    public Usuario actualizarDatosPersonales(String username, String nombre, String email,
+                                              String telefono, String direccion) {
+        Usuario usuario = usuarioRepository.findByUsuario(username)
+            .orElseThrow(() -> new IllegalArgumentException("No se encontró la cuenta del usuario."));
+
+        String nombreNormalizado = nombre == null ? "" : nombre.trim();
+        if (nombreNormalizado.length() < 2)
+            throw new IllegalArgumentException("El nombre completo debe tener al menos 2 caracteres.");
+        if (nombreNormalizado.length() > 100)
+            throw new IllegalArgumentException("El nombre completo no puede superar 100 caracteres.");
+
+        String emailNormalizado = email == null ? "" : email.trim().toLowerCase();
+        if (emailNormalizado.isBlank())
+            throw new IllegalArgumentException("El correo electrónico es obligatorio.");
+        if (emailNormalizado.length() > 150)
+            throw new IllegalArgumentException("El correo electrónico no puede superar 150 caracteres.");
+        if (!emailNormalizado.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"))
+            throw new IllegalArgumentException("El correo electrónico no tiene un formato válido.");
+        if (!emailNormalizado.equalsIgnoreCase(usuario.getEmail())
+                && usuarioRepository.existsByEmail(emailNormalizado))
+            throw new IllegalArgumentException("El correo electrónico ya está registrado.");
+
+        String telefonoNormalizado = normalizarCampoOpcional(telefono);
+        if (telefonoNormalizado != null && telefonoNormalizado.length() > 20)
+            throw new IllegalArgumentException("El teléfono no puede superar 20 caracteres.");
+
+        String direccionNormalizada = normalizarCampoOpcional(direccion);
+        if (direccionNormalizada != null && direccionNormalizada.length() > 255)
+            throw new IllegalArgumentException("La dirección no puede superar 255 caracteres.");
+
+        usuario.setNombre(nombreNormalizado);
+        usuario.setEmail(emailNormalizado);
+        usuario.setTelefono(telefonoNormalizado);
+        usuario.setDireccion(direccionNormalizada);
+        return usuarioRepository.save(usuario);
+    }
+
+    private String normalizarCampoOpcional(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        return valor.trim();
+    }
+
     @Transactional(readOnly = true)
     public Optional<Usuario> buscarPorUsername(String username) {
         return usuarioRepository.findByUsuario(username);

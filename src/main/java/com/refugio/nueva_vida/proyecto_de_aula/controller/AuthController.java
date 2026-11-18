@@ -117,15 +117,56 @@ public class AuthController {
     public String perfil(@AuthenticationPrincipal UserDetails userDetails, Model model) {
         if (userDetails == null) return "redirect:/login";
 
-        boolean esAdmin = userDetails.getAuthorities().stream()
-            .anyMatch(a -> a.getAuthority().equals("ROLE_administrador"));
-        if (esAdmin) return "redirect:/admin/perfil";
+        if (esAdministrador(userDetails)) return "redirect:/admin/perfil";
 
         Usuario usuario = usuarioService.buscarPorUsername(userDetails.getUsername()).orElse(null);
         if (usuario == null) return "redirect:/login";
 
+        return mostrarPerfil(usuario, model);
+    }
+
+    @PostMapping("/perfil")
+    public String actualizarPerfil(@AuthenticationPrincipal UserDetails userDetails,
+                                   @RequestParam(defaultValue = "") String nombre,
+                                   @RequestParam(defaultValue = "") String email,
+                                   @RequestParam(defaultValue = "") String telefono,
+                                   @RequestParam(defaultValue = "") String direccion,
+                                   Model model,
+                                   RedirectAttributes redirectAttrs) {
+        if (userDetails == null) return "redirect:/login";
+        if (esAdministrador(userDetails)) return "redirect:/admin/perfil";
+
+        Usuario usuario = usuarioService.buscarPorUsername(userDetails.getUsername()).orElse(null);
+        if (usuario == null) return "redirect:/login";
+
+        try {
+            usuarioService.actualizarDatosPersonales(
+                userDetails.getUsername(), nombre, email, telefono, direccion);
+            redirectAttrs.addFlashAttribute("mensajeExito", "Tus datos personales se actualizaron correctamente.");
+            return "redirect:/perfil";
+        } catch (IllegalArgumentException e) {
+            mostrarPerfil(usuario, model);
+            model.addAttribute("errorMsg", e.getMessage());
+            model.addAttribute("formNombre", nombre);
+            model.addAttribute("formEmail", email);
+            model.addAttribute("formTelefono", telefono);
+            model.addAttribute("formDireccion", direccion);
+            return "usuario/mi-perfil-userview";
+        }
+    }
+
+    private String mostrarPerfil(Usuario usuario, Model model) {
         model.addAttribute("usuario", usuario);
         model.addAttribute("citas",   citaService.citasDeUsuario(usuario));
+        model.addAttribute("formNombre", usuario.getNombre());
+        model.addAttribute("formEmail", usuario.getEmail());
+        model.addAttribute("formTelefono", usuario.getTelefono());
+        model.addAttribute("formDireccion", usuario.getDireccion());
         return "usuario/mi-perfil-userview";
+    }
+
+    private boolean esAdministrador(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+            .anyMatch(authority -> authority.getAuthority().equals("ROLE_administrador"));
     }
 }

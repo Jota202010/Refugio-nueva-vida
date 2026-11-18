@@ -15,6 +15,7 @@ Este documento describe las funciones disponibles en la aplicación según el ro
 ## Usuario registrado
 
 - Como usuario, quiero consultar mis datos de perfil y las solicitudes asociadas a mi cuenta, para revisar mi información y actividad.
+- Como usuario, quiero actualizar mi nombre, correo, teléfono y dirección desde mi perfil, para mantener al día mis datos de contacto.
 - Como usuario, quiero enviar una solicitud de adopción para un perro publicado, incluyendo la información solicitada sobre mi vivienda, para que el refugio evalúe mi caso.
 - Como usuario, quiero ver solo las preguntas que aplican según mis respuestas sobre vivienda, hogar y experiencia con perros, para completar un formulario más claro.
 - Como usuario, quiero evitar enviar solicitudes activas duplicadas para el mismo perro, para no repetir el trámite por error.

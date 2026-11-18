@@ -31,6 +31,10 @@ Consulta el documento de [historias de usuario](docs/historias-de-usuarios.md) p
 - Un problema con el correo no revierte una preaprobación ya guardada; el administrador puede intentar enviar la notificación nuevamente.
 - En Docker, los mensajes se capturan en Mailpit para probarlos sin enviarlos a direcciones externas.
 
+### Perfil del usuario
+
+- Cada usuario puede actualizar su nombre, correo, teléfono y dirección desde su perfil. El usuario de inicio de sesión y el rol permanecen protegidos.
+
 ### Chat de soporte con Gemini
 
 - Se integró el chat de ayuda con el backend y un proxy desplegado en Cloudflare Workers.
