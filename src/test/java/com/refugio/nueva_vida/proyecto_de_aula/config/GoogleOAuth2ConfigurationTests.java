@@ -62,4 +62,16 @@ class GoogleOAuth2ConfigurationTests {
             UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("redirect_uri")
         );
     }
+
+    @Test
+    void gmailSendPermissionIsLimitedToSeparateAdminConnection() {
+        var loginRegistration = clientRegistrationRepository.findByRegistrationId("google");
+        var gmailRegistration = clientRegistrationRepository.findByRegistrationId("google-mail");
+
+        assertTrue(loginRegistration.getScopes().contains("email"));
+        assertTrue(!loginRegistration.getScopes().contains("https://www.googleapis.com/auth/gmail.send"));
+        assertTrue(gmailRegistration.getScopes().contains("https://www.googleapis.com/auth/gmail.send"));
+        assertTrue(gmailRegistration.getProviderDetails().getAuthorizationUri().contains("prompt=consent"));
+        assertTrue(gmailRegistration.getProviderDetails().getAuthorizationUri().contains("access_type=offline"));
+    }
 }

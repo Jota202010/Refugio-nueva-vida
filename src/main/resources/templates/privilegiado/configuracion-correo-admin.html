@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configuración de correo — Refugio Nueva Vida</title>
+  <link rel="stylesheet" th:href="@{/css/app-theme.css}"/>
+</head>
+<body>
+  <main style="max-width:760px;margin:48px auto;padding:24px;">
+    <a th:href="@{/admin/panel}">← Volver al panel</a>
+    <h1>Correo de notificaciones</h1>
+    <p>Conecta el Gmail del refugio para enviar notificaciones de adopción mediante Gmail API.</p>
+
+    <div th:if="${mensajeExito}" role="status" style="padding:14px;margin:18px 0;background:#D1FAE5;color:#065F46;border-radius:8px;">
+      <span th:text="${mensajeExito}"></span>
+    </div>
+    <div th:if="${errorMsg}" role="alert" style="padding:14px;margin:18px 0;background:#FEE2E2;color:#991B1B;border-radius:8px;">
+      <span th:text="${errorMsg}"></span>
+    </div>
+
+    <section th:if="${correoConectado}" style="padding:20px;border:1px solid #d1d5db;border-radius:12px;">
+      <h2>Cuenta conectada</h2>
+      <p>Las notificaciones se enviarán desde <strong th:text="${correoConectado}"></strong>.</p>
+      <form th:action="@{/admin/correo/desconectar}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit">Desconectar Gmail</button>
+      </form>
+    </section>
+
+    <section th:unless="${correoConectado}" style="padding:20px;border:1px solid #d1d5db;border-radius:12px;">
+      <h2>Conectar una cuenta</h2>
+      <p>Google solicitará permiso para enviar correo. Solo esta cuenta de administrador puede autorizar el buzón.</p>
+      <form th:if="${gmailOauthDisponible}" th:action="@{/admin/correo/conectar}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit">Conectar con Google</button>
+      </form>
+      <p th:unless="${gmailOauthDisponible}" role="alert">
+        La conexión de Google no está configurada en el servidor. Configura GOOGLE_CLIENT_ID y
+        GOOGLE_CLIENT_SECRET para habilitarla.
+      </p>
+    </section>
+
+    <p style="margin-top:24px;">
+      Si cambias de proveedor, configura <code>MAIL_PROVIDER</code> en el servidor. Para Gmail API debe ser
+      <code>gmail-api</code>; <code>MAIL_FROM</code> es opcional, pero si se configura debe ser la cuenta conectada
+      o un alias autorizado en Gmail.
+    </p>
+  </main>
+</body>
+</html>

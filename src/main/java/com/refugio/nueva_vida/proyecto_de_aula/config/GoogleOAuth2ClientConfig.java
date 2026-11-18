@@ -28,6 +28,12 @@ public class GoogleOAuth2ClientConfig {
             .clientSecret(clientSecret.trim())
             .scope("openid", "profile", "email")
             .build();
-        return new InMemoryClientRegistrationRepository(google);
+        ClientRegistration gmail = CommonOAuth2Provider.GOOGLE.getBuilder("google-mail")
+            .clientId(clientId.trim())
+            .clientSecret(clientSecret.trim())
+            .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent")
+            .scope("openid", "profile", "email", "https://www.googleapis.com/auth/gmail.send")
+            .build();
+        return new InMemoryClientRegistrationRepository(google, gmail);
     }
 }

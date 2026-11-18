@@ -37,10 +37,10 @@
       ⚠️ <span th:text="${errorMsg}"></span>
     </div>
     <div th:if="${avisoCorreo}" style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:12px 16px;margin-bottom:18px;color:#92400E;font-weight:700;">
-      ✉ La solicitud sigue pre-aprobada. Puedes corregir la configuración SMTP y usar el botón de reenvío.
+      ✉ La solicitud sigue pre-aprobada. Puedes corregir la configuración del correo y usar el botón de reenvío.
     </div>
     <div th:if="${avisoCorreoRechazo}" style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:12px 16px;margin-bottom:18px;color:#92400E;font-weight:700;">
-      ✉ La solicitud está rechazada, pero no se pudo enviar el aviso. Puedes corregir la configuración SMTP y reintentarlo.
+      ✉ La solicitud está rechazada, pero no se pudo enviar el aviso. Puedes corregir la configuración del correo y reintentarlo.
     </div>
 
     <div th:class="'status-banner ' + ${cita.estado.name()}">

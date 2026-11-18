@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -34,6 +36,7 @@ class NotificacionCitaServiceTests {
     private static final String RESEND_API_KEY = "re_test_key";
 
     private JavaMailSender mailSender;
+    private GmailApiEmailSender gmailApiEmailSender;
     private CitaRepository citaRepository;
     private NotificacionCitaService notificacionService;
     private MockRestServiceServer server;
@@ -43,9 +46,11 @@ class NotificacionCitaServiceTests {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         mailSender = mock(JavaMailSender.class);
+        gmailApiEmailSender = mock(GmailApiEmailSender.class);
         citaRepository = mock(CitaRepository.class);
         notificacionService = new NotificacionCitaService(
-            mailSender, builder, citaRepository, "notificaciones@refugio.test", "https://refugio.test",
+            mailSender, builder, citaRepository, gmailApiEmailSender,
+            "notificaciones@refugio.test", "https://refugio.test",
             "resend", RESEND_API_KEY, false);
     }
 
@@ -144,7 +149,8 @@ class NotificacionCitaServiceTests {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer noUsado = MockRestServiceServer.bindTo(builder).build();
         NotificacionCitaService servicioSinClave = new NotificacionCitaService(
-            mailSender, builder, citaRepository, "notificaciones@refugio.test", "https://refugio.test",
+            mailSender, builder, citaRepository, gmailApiEmailSender,
+            "notificaciones@refugio.test", "https://refugio.test",
             "resend", "", false);
         when(citaRepository.findWithUsuarioAndPerroByIdCita(45)).thenReturn(Optional.of(crearCitaPreaprobada()));
 
@@ -157,7 +163,8 @@ class NotificacionCitaServiceTests {
     void conservaElEnvioSmtpParaLaDemostracionLocal() {
         RestClient.Builder builder = RestClient.builder();
         NotificacionCitaService servicioSmtp = new NotificacionCitaService(
-            mailSender, builder, citaRepository, "notificaciones@refugio.test", "https://refugio.test",
+            mailSender, builder, citaRepository, gmailApiEmailSender,
+            "notificaciones@refugio.test", "https://refugio.test",
             "smtp", "", false);
         Cita cita = crearCitaPreaprobada();
         MimeMessage mensaje = new MimeMessage(Session.getInstance(new Properties()));
@@ -167,6 +174,22 @@ class NotificacionCitaServiceTests {
         servicioSmtp.enviarAvisoPreaprobacion(45);
 
         verify(mailSender).send(mensaje);
+    }
+
+    @Test
+    void enviaNotificacionesUsandoGmailApiCuandoEseProveedorEstaSeleccionado() {
+        RestClient.Builder builder = RestClient.builder();
+        NotificacionCitaService servicioGmail = new NotificacionCitaService(
+            mailSender, builder, citaRepository, gmailApiEmailSender,
+            "notificaciones@refugio.test", "https://refugio.test", "gmail-api", "", false);
+        when(citaRepository.findWithUsuarioAndPerroByIdCita(45)).thenReturn(Optional.of(crearCitaPreaprobada()));
+
+        servicioGmail.enviarAvisoPreaprobacion(45);
+
+        verify(gmailApiEmailSender).send(
+            eq("notificaciones@refugio.test"), eq("usuario@example.com"),
+            eq("¡Buenas noticias! Tu solicitud fue pre-aprobada"),
+            anyString(), anyString());
     }
 
     private ResponseActions expectAccepted(String subject) {

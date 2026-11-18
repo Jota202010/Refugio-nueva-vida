@@ -31,6 +31,7 @@ public class NotificacionCitaService {
     private static final String RESEND_API_URL = "https://api.resend.com";
 
     private final JavaMailSender mailSender;
+    private final GmailApiEmailSender gmailApiEmailSender;
     private final RestClient restClient;
     private final CitaRepository citaRepository;
     private final String remitente;
@@ -42,23 +43,28 @@ public class NotificacionCitaService {
     public NotificacionCitaService(JavaMailSender mailSender,
                                    RestClient.Builder builder,
                                    CitaRepository citaRepository,
+                                   GmailApiEmailSender gmailApiEmailSender,
                                    @Value("${app.mail.from:no-reply@refugionuevavida.org}") String remitente,
                                    @Value("${app.base-url:http://localhost:8080}") String baseUrl,
                                    @Value("${app.mail.provider:smtp}") String proveedorCorreo,
                                    @Value("${app.mail.resend.api-key:}") String resendApiKey) {
-        this(mailSender, builder, citaRepository, remitente, baseUrl, proveedorCorreo, resendApiKey, true);
+        this(mailSender, builder, citaRepository, gmailApiEmailSender,
+            remitente, baseUrl, proveedorCorreo, resendApiKey, true);
     }
 
     NotificacionCitaService(JavaMailSender mailSender,
                            RestClient.Builder builder,
                            CitaRepository citaRepository,
+                           GmailApiEmailSender gmailApiEmailSender,
                            String remitente,
                            String baseUrl,
                            String proveedorCorreo,
                            String resendApiKey,
                            boolean configureTimeouts) {
-        if (!"smtp".equalsIgnoreCase(proveedorCorreo) && !"resend".equalsIgnoreCase(proveedorCorreo)) {
-            throw new IllegalArgumentException("MAIL_PROVIDER debe ser smtp o resend.");
+        if (!"smtp".equalsIgnoreCase(proveedorCorreo)
+                && !"resend".equalsIgnoreCase(proveedorCorreo)
+                && !"gmail-api".equalsIgnoreCase(proveedorCorreo)) {
+            throw new IllegalArgumentException("MAIL_PROVIDER debe ser smtp, resend o gmail-api.");
         }
         if (configureTimeouts) {
             SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -66,12 +72,15 @@ public class NotificacionCitaService {
             requestFactory.setReadTimeout(Duration.ofSeconds(15));
             builder.requestFactory(requestFactory);
         }
-        this.mailSender = mailSender;
-        this.restClient = builder.baseUrl(RESEND_API_URL).build();
-        this.citaRepository = citaRepository;
-        this.remitente = remitente;
-        this.baseUrl = baseUrl;
         this.proveedorCorreo = proveedorCorreo.toLowerCase(java.util.Locale.ROOT);
+        this.mailSender = mailSender;
+        this.gmailApiEmailSender = gmailApiEmailSender;
+        this.restClient = builder.clone().baseUrl(RESEND_API_URL).build();
+        this.citaRepository = citaRepository;
+        this.remitente = remitente == null || remitente.isBlank()
+                ? ("gmail-api".equals(this.proveedorCorreo) ? "" : "no-reply@refugionuevavida.org")
+                : remitente;
+        this.baseUrl = baseUrl;
         this.resendApiKey = resendApiKey;
     }
 
@@ -209,6 +218,12 @@ public class NotificacionCitaService {
     private void enviarCorreo(Cita cita, String asunto, String textoPlano, String contenidoHtml) {
         if ("smtp".equals(proveedorCorreo)) {
             enviarPorSmtp(cita, asunto, textoPlano, contenidoHtml);
+            return;
+        }
+
+        if ("gmail-api".equals(proveedorCorreo)) {
+            gmailApiEmailSender.send(remitente, cita.getUsuario().getEmail(), asunto, textoPlano, contenidoHtml);
+            logger.info("Gmail API aceptó el correo de notificación para la cita {}.", cita.getIdCita());
             return;
         }
 

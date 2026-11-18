@@ -6,8 +6,15 @@ import com.refugio.nueva_vida.proyecto_de_aula.service.*;
 import com.refugio.nueva_vida.proyecto_de_aula.model.Usuario;
 import com.refugio.nueva_vida.proyecto_de_aula.web.ConfiguracionHorarioForm;
 import com.refugio.nueva_vida.proyecto_de_aula.web.HorarioExcepcionForm;
+import com.refugio.nueva_vida.proyecto_de_aula.security.GmailOAuth2ConnectionHandler;
+import com.refugio.nueva_vida.proyecto_de_aula.service.GmailCredentialService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -26,15 +33,24 @@ public class AdminController {
     private final CitaService citaService;
     private final HorarioService horarioService;
     private final NotificacionCitaService notificacionCitaService;
+    private final GmailCredentialService gmailCredentialService;
+    private final GmailOAuth2ConnectionHandler gmailConnectionHandler;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrations;
 
     public AdminController(PerroService perroService, UsuarioService usuarioService,
                            CitaService citaService, HorarioService horarioService,
-                           NotificacionCitaService notificacionCitaService) {
+                           NotificacionCitaService notificacionCitaService,
+                           GmailCredentialService gmailCredentialService,
+                           GmailOAuth2ConnectionHandler gmailConnectionHandler,
+                           ObjectProvider<ClientRegistrationRepository> clientRegistrations) {
         this.perroService  = perroService;
         this.usuarioService = usuarioService;
         this.citaService   = citaService;
         this.horarioService = horarioService;
         this.notificacionCitaService = notificacionCitaService;
+        this.gmailCredentialService = gmailCredentialService;
+        this.gmailConnectionHandler = gmailConnectionHandler;
+        this.clientRegistrations = clientRegistrations;
     }
 
     // ── Panel principal ───────────────────────────────────────────────────────
@@ -55,6 +71,45 @@ public class AdminController {
         model.addAttribute("excepcion", new HorarioExcepcionForm());
         model.addAttribute("excepciones", horarioService.listarExcepcionesFuturas());
         return "privilegiado/configuracion-horarios-admin";
+    }
+
+    @GetMapping("/admin/correo")
+    public String configuracionCorreo(@RequestParam(required = false) String connected,
+                                      @RequestParam(required = false) String error,
+                                      Model model) {
+        model.addAttribute("correoConectado", gmailCredentialService.connectedEmail().orElse(null));
+        model.addAttribute("gmailOauthDisponible", tieneRegistroGmail());
+        if ("true".equals(connected)) {
+            model.addAttribute("mensajeExito", "La cuenta de Gmail quedó conectada para enviar notificaciones.");
+        }
+        if ("authorization".equals(error)) {
+            model.addAttribute("errorMsg", "Google no pudo completar la autorización. Revisa los permisos y vuelve a intentar.");
+        } else if ("save".equals(error)) {
+            model.addAttribute("errorMsg", "No se pudo guardar la autorización de Gmail. Revisa la configuración del servidor.");
+        }
+        return "privilegiado/configuracion-correo-admin";
+    }
+
+    @PostMapping("/admin/correo/conectar")
+    public String conectarCorreo(HttpServletRequest request) {
+        if (!tieneRegistroGmail()) {
+            return "redirect:/admin/correo?error=authorization";
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        gmailConnectionHandler.beginConnection(request, authentication);
+        return "redirect:/oauth2/authorization/google-mail";
+    }
+
+    @PostMapping("/admin/correo/desconectar")
+    public String desconectarCorreo(RedirectAttributes redirectAttributes) {
+        gmailCredentialService.disconnect();
+        redirectAttributes.addFlashAttribute("mensajeExito", "La cuenta de Gmail se desconectó.");
+        return "redirect:/admin/correo";
+    }
+
+    private boolean tieneRegistroGmail() {
+        ClientRegistrationRepository registrations = clientRegistrations.getIfAvailable();
+        return registrations != null && registrations.findByRegistrationId("google-mail") != null;
     }
 
     @PostMapping("/admin/horarios/semanal")
@@ -157,7 +212,7 @@ public class AdminController {
             logger.warn("No se pudo reenviar el correo de preaprobación de la cita {}.", id, e);
             ra.addFlashAttribute("avisoCorreo", true);
             ra.addFlashAttribute("errorMsg",
-                "No se pudo enviar el correo. Verifica la configuración del servidor SMTP e inténtalo de nuevo.");
+                "No se pudo enviar el correo. Verifica la configuración del proveedor e inténtalo de nuevo.");
         }
         return "redirect:/admin/cita/" + id;
     }
@@ -198,7 +253,7 @@ public class AdminController {
             logger.warn("No se pudo reenviar el correo de rechazo de la cita {}.", id, e);
             ra.addFlashAttribute("avisoCorreoRechazo", true);
             ra.addFlashAttribute("errorMsg",
-                "No se pudo enviar el correo. Verifica la configuración del servidor SMTP e inténtalo de nuevo.");
+                "No se pudo enviar el correo. Verifica la configuración del proveedor e inténtalo de nuevo.");
         }
         return "redirect:/admin/cita/" + id;
     }

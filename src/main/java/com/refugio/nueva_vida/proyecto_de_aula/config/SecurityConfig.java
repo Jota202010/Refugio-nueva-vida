@@ -1,6 +1,7 @@
 package com.refugio.nueva_vida.proyecto_de_aula.config;
 
 import com.refugio.nueva_vida.proyecto_de_aula.security.CustomUserDetailsService;
+import com.refugio.nueva_vida.proyecto_de_aula.security.GmailOAuth2ConnectionHandler;
 import com.refugio.nueva_vida.proyecto_de_aula.security.GoogleOidcUserService;
 import com.refugio.nueva_vida.proyecto_de_aula.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,9 +23,13 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -61,6 +67,16 @@ public class SecurityConfig {
     @Bean
     public RequestCache requestCache() {
         return new HttpSessionRequestCache();
+    }
+
+    @Bean
+    public SecurityContextRepository securityContextRepository() {
+        return new HttpSessionSecurityContextRepository();
+    }
+
+    @Bean
+    public OAuth2AuthorizedClientRepository authorizedClientRepository() {
+        return new HttpSessionOAuth2AuthorizedClientRepository();
     }
 
     @Bean
@@ -115,12 +131,17 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           AuthenticationSuccessHandler loginSuccessHandler,
+                                           @Qualifier("loginSuccessHandler")
+                                               AuthenticationSuccessHandler loginSuccessHandler,
                                            RequestCache requestCache,
                                            ObjectProvider<ClientRegistrationRepository> clientRegistrations,
-                                           ObjectProvider<OAuth2UserService<OidcUserRequest, OidcUser>> googleOidcUserService)
+                                           ObjectProvider<OAuth2UserService<OidcUserRequest, OidcUser>> googleOidcUserService,
+                                           OAuth2AuthorizedClientRepository authorizedClientRepository,
+                                           SecurityContextRepository securityContextRepository,
+                                           GmailOAuth2ConnectionHandler gmailConnectionHandler)
             throws Exception {
         http
+            .securityContext(context -> context.securityContextRepository(securityContextRepository))
             .requestCache(cache -> cache.requestCache(requestCache))
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas: cualquiera puede acceder
@@ -148,9 +169,17 @@ public class SecurityConfig {
         if (clientRegistrations.getIfAvailable() != null) {
             http.oauth2Login(oauth -> oauth
                 .loginPage("/login")
+                .authorizedClientRepository(authorizedClientRepository)
                 .userInfoEndpoint(userInfo -> userInfo.oidcUserService(googleOidcUserService.getObject()))
-                .successHandler(loginSuccessHandler)
+                .successHandler((request, response, authentication) -> {
+                    if (!gmailConnectionHandler.handleSuccess(request, response, authentication)) {
+                        loginSuccessHandler.onAuthenticationSuccess(request, response, authentication);
+                    }
+                })
                 .failureHandler((request, response, exception) -> {
+                    if (gmailConnectionHandler.handleFailure(request, response)) {
+                        return;
+                    }
                     String oauthErrorCode = exception instanceof OAuth2AuthenticationException oauthException
                         ? oauthException.getError().getErrorCode()
                         : "not_available";
