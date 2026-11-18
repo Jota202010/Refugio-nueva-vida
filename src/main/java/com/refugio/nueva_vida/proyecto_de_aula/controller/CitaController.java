@@ -135,8 +135,18 @@ public class CitaController {
                             + "El equipo del refugio podra ayudarte con el siguiente paso.");
                 }
             } else {
-                ra.addFlashAttribute("mensajeExito",
-                    "Tu solicitud fue recibida y quedo pendiente de revision por el equipo del refugio.");
+                try {
+                    notificacionCitaService.enviarAvisoRevisionHumana(procesada.getIdCita());
+                    ra.addFlashAttribute("mensajeExito",
+                        "Tu solicitud fue recibida y quedo pendiente de revision. Te avisaremos por correo "
+                            + "cuando haya una actualizacion.");
+                } catch (MailException exception) {
+                    logger.warn("No se pudo enviar el correo de recepción de la cita {}.",
+                        procesada.getIdCita(), exception);
+                    ra.addFlashAttribute("mensajeExito",
+                        "Tu solicitud fue recibida y quedo pendiente de revision, pero no se pudo enviar el correo. "
+                            + "Puedes consultar el estado desde tu perfil.");
+                }
             }
         } catch (IllegalStateException e) {
             ra.addFlashAttribute("errorMsg", e.getMessage());

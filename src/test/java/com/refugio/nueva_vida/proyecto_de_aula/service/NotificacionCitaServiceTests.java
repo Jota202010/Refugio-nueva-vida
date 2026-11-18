@@ -73,12 +73,43 @@ class NotificacionCitaServiceTests {
     }
 
     @Test
+    void enviaAvisoDeRecepcionCuandoLaSolicitudQuedaPendienteDeRevision() throws Exception {
+        Cita cita = crearCitaPreaprobada();
+        cita.setEstado(Cita.EstadoCita.en_espera);
+        MimeMessage mensaje = new MimeMessage(Session.getInstance(new Properties()));
+        when(citaRepository.findWithUsuarioAndPerroByIdCita(45)).thenReturn(Optional.of(cita));
+        when(mailSender.createMimeMessage()).thenReturn(mensaje);
+
+        notificacionService.enviarAvisoRevisionHumana(45);
+        mensaje.saveChanges();
+
+        assertEquals("usuario@example.com", mensaje.getRecipients(MimeMessage.RecipientType.TO)[0].toString());
+        assertEquals("Recibimos tu solicitud de adopción", mensaje.getSubject());
+        String contenido = contenidoComoTexto(mensaje.getContent());
+        assertTrue(contenido.contains("El equipo del refugio la revisará"));
+        assertTrue(contenido.contains("https://refugio.test/perfil"));
+        assertTrue(contenido.contains("aún no está aprobada"));
+        verify(mailSender).send(mensaje);
+    }
+
+    @Test
     void noEnviaAvisoDeRechazoSiLaSolicitudNoEstaRechazada() {
         Cita cita = crearCitaPreaprobada();
         when(citaRepository.findWithUsuarioAndPerroByIdCita(45)).thenReturn(Optional.of(cita));
 
         assertThrows(IllegalStateException.class,
             () -> notificacionService.enviarAvisoRechazo(45));
+
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void noEnviaAvisoDeRevisionSiLaSolicitudYaNoEstaPendiente() {
+        Cita cita = crearCitaPreaprobada();
+        when(citaRepository.findWithUsuarioAndPerroByIdCita(45)).thenReturn(Optional.of(cita));
+
+        assertThrows(IllegalStateException.class,
+            () -> notificacionService.enviarAvisoRevisionHumana(45));
 
         verify(mailSender, never()).send(any(MimeMessage.class));
     }

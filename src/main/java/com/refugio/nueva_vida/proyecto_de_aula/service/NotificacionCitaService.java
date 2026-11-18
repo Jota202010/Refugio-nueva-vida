@@ -4,6 +4,8 @@ import com.refugio.nueva_vida.proyecto_de_aula.model.Cita;
 import com.refugio.nueva_vida.proyecto_de_aula.repository.CitaRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -14,6 +16,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 public class NotificacionCitaService {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificacionCitaService.class);
 
     private final JavaMailSender mailSender;
     private final CitaRepository citaRepository;
@@ -77,6 +81,46 @@ public class NotificacionCitaService {
                 + "</div></div></div>");
     }
 
+    public void enviarAvisoRevisionHumana(Integer idCita) {
+        Cita cita = citaRepository.findWithUsuarioAndPerroByIdCita(idCita)
+            .orElseThrow(() -> new IllegalStateException("La cita ya no existe."));
+        if (cita.getEstado() != Cita.EstadoCita.en_espera) {
+            throw new IllegalStateException("Solo se puede notificar una solicitud pendiente de revision.");
+        }
+
+        String enlace = UriComponentsBuilder.fromUriString(baseUrl)
+            .path("/perfil")
+            .toUriString();
+        String nombre = HtmlUtils.htmlEscape(cita.getUsuario().getNombre());
+        String perro = HtmlUtils.htmlEscape(cita.getPerro().getNombre());
+        enviarCorreo(cita, "Recibimos tu solicitud de adopción",
+            "Hola " + cita.getUsuario().getNombre() + ",\n\n"
+                + "Recibimos tu solicitud para conocer a " + cita.getPerro().getNombre()
+                + ". El equipo del refugio la revisará y te avisará cuando haya una actualización.\n\n"
+                + "Por ahora no necesitas realizar ninguna otra acción. Puedes consultar el estado desde tu perfil:\n"
+                + enlace + "\n\n"
+                + "Esta solicitud aún no está aprobada ni confirma una adopción.\n\n"
+                + "Con cariño,\nRefugio Nueva Vida",
+            "<div style=\"margin:0;padding:32px 12px;background:#f4f6f2;font-family:Arial,sans-serif;color:#24352e\">"
+                + "<div style=\"max-width:560px;margin:0 auto;background:#fff;border:1px solid #e3e9e4;"
+                + "border-radius:18px;overflow:hidden\">"
+                + "<div style=\"padding:28px 32px;background:#315c48;color:#fff;text-align:center\">"
+                + "<div style=\"font-size:14px;letter-spacing:1px\">REFUGIO NUEVA VIDA</div>"
+                + "<div style=\"font-size:32px;margin-top:14px\">🐾</div>"
+                + "<h1 style=\"font-size:24px;margin:8px 0 0\">Recibimos tu solicitud</h1></div>"
+                + "<div style=\"padding:28px 32px\">"
+                + "<p style=\"font-size:16px\">Hola " + nombre + ",</p>"
+                + "<p style=\"font-size:16px;line-height:1.7\">Recibimos tu solicitud para conocer a <strong>"
+                + perro + "</strong>. El equipo del refugio la revisará y te avisará cuando haya una actualización.</p>"
+                + "<p style=\"text-align:center;margin:26px 0\"><a href=\"" + HtmlUtils.htmlEscape(enlace)
+                + "\" style=\"display:inline-block;background:#315c48;color:#fff;padding:13px 22px;"
+                + "border-radius:9px;text-decoration:none;font-weight:bold\">Consultar mi perfil</a></p>"
+                + "<p style=\"font-size:13px;color:#66756e;line-height:1.6\">Por ahora no necesitas realizar otra acción. "
+                + "Esta solicitud aún no está aprobada ni confirma una adopción.</p>"
+                + "<p style=\"margin-top:26px\">Con cariño,<br><strong>Equipo Refugio Nueva Vida</strong></p>"
+                + "</div></div></div>");
+    }
+
     public void enviarAvisoRechazo(Integer idCita) {
         Cita cita = citaRepository.findWithUsuarioAndPerroByIdCita(idCita)
             .orElseThrow(() -> new IllegalStateException("La cita ya no existe."));
@@ -133,5 +177,6 @@ public class NotificacionCitaService {
             throw new MailPreparationException("No se pudo preparar el correo de notificación de cita.", e);
         }
         mailSender.send(mensaje);
+        logger.info("SMTP aceptó el correo de notificación para la cita {}.", cita.getIdCita());
     }
 }
